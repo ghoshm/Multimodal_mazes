@@ -1,4 +1,5 @@
 # Maze environment
+
 import numpy as np
 
 
@@ -32,7 +33,7 @@ class maze:
             Where [:,:,-1] stores the maze structure.
         """
         # Set goals as left (-1) or right (1)
-        goal_directions = np.repeat([-1, 1], repeats=number // 2)
+        goal_locations = np.repeat([0, self.size - 1], repeats=number // 2)
 
         # Set which channel encodes the goal
         goal_channels = np.repeat([0, 1], repeats=number // 2)
@@ -56,7 +57,7 @@ class maze:
             )
 
             # Leading channel
-            if goal_directions[n] == -1:
+            if goal_locations[n] == 0:
                 maze[
                     self.size // 2, 0 : (self.size - 1) // 2, goal_channels[n]
                 ] = gradient[::-1]
@@ -69,5 +70,5 @@ class maze:
             mazes.append(maze)
 
         self.mazes = mazes
-        self.goals = goal_directions
+        self.goals = goal_locations
         self.maze_type = "Track"
