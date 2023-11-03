@@ -3,8 +3,10 @@
 import numpy as np
 import neat
 
+# use numba: @numba.jit(nopython=True) - above def sense
 
-class agent:
+
+class Agent:
     def __init__(self, location, channels, genome, config):
         """
         Creates a new agent.
@@ -16,7 +18,7 @@ class agent:
         """
         self.location = np.array(location)
         self.channels = np.array(channels)
-        self.channel_inputs = []
+        self.channel_inputs = np.zeros((3, len(self.channels)))
         self.action = []
         self.fitness = []
         self.net = neat.nn.FeedForwardNetwork.create(genome, config)
@@ -31,23 +33,16 @@ class agent:
             self.channel_inputs: a 3 (range) x max channels np array.
             All agents will have max channels, but inactive ones will be zeroed.
         """
-        # Reset inputs
-        channel_inputs = np.zeros((3, len(self.channels)))
 
         # Generate channel data
-        channel_inputs = np.copy(
-            env[
-                self.location[0],
-                (self.location[1] - 1) : (self.location[1] + 2),
-                : len(self.channels),
-            ]
-        )
+        self.channel_inputs[:] = env[
+            self.location[0],
+            (self.location[1] - 1) : (self.location[1] + 2),
+            : len(self.channels),
+        ]
 
         # Zero out inactive channels
-        channel_inputs *= self.channels
-
-        # Update
-        self.channel_inputs = channel_inputs
+        self.channel_inputs *= self.channels
 
     def act(self, env):
         """

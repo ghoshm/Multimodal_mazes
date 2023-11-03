@@ -2,14 +2,16 @@
 
 import numpy as np
 
+# Maze as a parent class which other mazes inherit from
 
-class maze:
+
+class Maze:
     def __init__(self, size, n_channels):
         """
         Maze object.
         Arguments:
-            size: the size of the square maze [n]
-            n_channels: the number of input channels [n]
+            size: the size of the square maze [n].
+            n_channels: the number of input channels [n].
         """
         self.size = size
         self.n_channels = n_channels
