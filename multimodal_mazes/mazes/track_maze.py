@@ -1,34 +1,29 @@
-# Maze environment
-
+# Track maze
 import numpy as np
+from multimodal_mazes.mazes.maze_env import Maze
 
-# Maze as a parent class which other mazes inherit from
 
+class TrackMaze(Maze):
+    """
+    Track maze class.
+    Additional properties:
+        goal_channels: a np vector of goal locations.
+    """
 
-class Maze:
     def __init__(self, size, n_channels):
-        """
-        Maze object.
-        Arguments:
-            size: the size of the square maze [n].
-            n_channels: the number of input channels [n].
-        """
-        self.size = size
-        self.n_channels = n_channels
-        self.mazes = []
-        self.goal_locations = []
+        super().__init__(size, n_channels)
+        self.maze_type = "TrackMaze"
         self.goal_channels = []
-        self.maze_type = []
 
-    def generate_track_mazes(self, number):
+    def generate(self, number):
         """
         Generates track mazes.
         Arguments:
             number: of mazes to generate
-        Returns:
-            mazes: a number length list of mazes, each maze
-            is a np array of size x size x channels + 1.
-            Where [:,:,-1] stores the maze structure.
+        Generates:
+            mazes: see parent class.
+            goal_locations: parent class.
+            goal_channels: see above.
         """
         # Set goal locations as left (1) or right (size - 2)
         goal_locations = np.repeat([1, self.size - 2], repeats=number // 2)
@@ -71,4 +66,3 @@ class Maze:
         self.mazes = mazes
         self.goal_locations = goal_locations
         self.goal_channels = goal_channels
-        self.maze_type = "Track"

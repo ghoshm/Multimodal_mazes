@@ -5,41 +5,7 @@ import neat
 import pickle
 import argparse
 
-from agent import *
-from maze_env import *
-
-
-def maze_trial(mz, mz_goal_loc, channels, genome, config, n_steps):
-    """
-    Tests a single agent on a single maze.
-    Arguments:
-        mz: a np array of size x size x channels + 1.
-            Where [:,:,-1] stores the maze structure.
-        mz_goal_loc: the location of the goal [x].
-        channels: list of active (1) and inative (0) channels e.g. [0,1].
-        genome: neat generated genome.
-        config: the neat configuration holder.
-        n_steps: number of simulation steps.
-    Returns:
-        time: the number of steps taken to solve the maze.
-              Returns n_steps-1 if the agent fails.
-        path: a list with the agent's location at each time step [x,y].
-    """
-    # Reset agent
-    agnt = Agent(location=[5, 5], channels=channels, genome=genome, config=config)
-
-    path = [list(agnt.location)]
-    # Sensation-action loop
-    for time in range(n_steps):
-        agnt.sense(mz)
-        agnt.act(mz)
-
-        path.append(list(agnt.location))
-        # If the end is reached
-        if agnt.location[1] == mz_goal_loc:
-            break
-
-    return time, path  # returning a class is more flexible
+import multimodal_mazes
 
 
 def eval_fitness(genome_id, genome, config, n_steps=50):
@@ -59,11 +25,11 @@ def eval_fitness(genome_id, genome, config, n_steps=50):
 
     fitness = []
     # For each maze
-    for mz_n, mz in enumerate(track.mazes):
+    for mz_n, mz in enumerate(maze.mazes):
         # Run trial
-        time, _ = maze_trial(
+        time, _ = multimodal_mazes.maze_trial(
             mz,
-            track.goal_locations[mz_n],
+            maze.goal_locations[mz_n],
             args.channels,
             genome,
             config,
@@ -74,15 +40,14 @@ def eval_fitness(genome_id, genome, config, n_steps=50):
         fitness.append(time)
 
     # Normalise fitness
-    fastest_solution = ((track.size - 2) // 2) - 1
+    fastest_solution = ((maze.size - 2) // 2) - 1  # should use shortest path
     fitness = 1 - (
         (np.array(fitness) - fastest_solution) / (n_steps - 1 - fastest_solution)
     )
 
     # Calculate fitness per channel
     fitness = [
-        fitness[track.goal_channels == ch].mean()
-        for ch in np.unique(track.goal_channels)
+        fitness[maze.goal_channels == ch].mean() for ch in np.unique(maze.goal_channels)
     ]
 
     # Record data
@@ -176,11 +141,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Other hyperparameters
-    config_path = "./neat_config.ini"
+    config_path = "../neat_config.ini"
 
     # Generate mazes
-    track = Maze(size=args.maze_size, n_channels=len(args.channels))
-    track.generate_track_mazes(args.n_mazes)
+    maze = multimodal_mazes.TrackMaze(
+        size=args.maze_size, n_channels=len(args.channels)
+    )
+    maze.generate(args.n_mazes)
 
     # Run
     agent_record = []
@@ -198,6 +165,6 @@ if __name__ == "__main__":
             ("ch1_fitness", "float64"),
         ],
     )
-    np.save("./Results/test.npy", agent_record)
-    with open("./Results/test.pickle", "wb") as file:
+    np.save("../results/test.npy", agent_record)
+    with open("../results/test.pickle", "wb") as file:
         pickle.dump(top_genome, file)

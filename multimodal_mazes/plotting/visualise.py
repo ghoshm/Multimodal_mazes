@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from netgraph import Graph
 
-plt.style.use("./style_sheet.mplstyle")
+plt.style.use("../multimodal_mazes/plotting/style_sheet.mplstyle")
 
 
 def plot_fitness_over_generations(x, plot_species=True):

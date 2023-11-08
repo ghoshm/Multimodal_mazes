@@ -4,3 +4,6 @@ __pycache__/
 # Results 
 Results/
 
+# Egg info
+multimodal_mazes.egg-info/
+
