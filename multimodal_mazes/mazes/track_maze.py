@@ -7,7 +7,7 @@ class TrackMaze(Maze):
     """
     Track maze class.
     Additional properties:
-        goal_channels: a np vector of goal locations.
+        goal_channels: a np vector with each trials leading channel.
     """
 
     def __init__(self, size, n_channels):
@@ -25,6 +25,8 @@ class TrackMaze(Maze):
             goal_locations: parent class.
             goal_channels: see above.
         """
+        assert (number % 2) == 0, "Please use an even number of mazes"
+
         # Set goal locations as left (1) or right (size - 2)
         goal_locations = np.repeat([1, self.size - 2], repeats=number // 2)
 

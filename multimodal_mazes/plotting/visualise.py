@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors
+from matplotlib.markers import MarkerStyle
 from netgraph import Graph
 
 plt.style.use("../multimodal_mazes/plotting/style_sheet.mplstyle")
@@ -69,12 +70,32 @@ def plot_path(path, mz, mz_goal_loc, n_steps):
 
     # Draw maze
     plt.imshow(mz[:, :, -1], cmap="binary", alpha=0.25)
+    fill_style = ["left", "right"]
+    for ch in [0, 1]:
+        r, c = np.where(mz[:, :, ch])
+        v = mz[:, :, ch][mz[:, :, ch] > 0]
+
+        plt.scatter(
+            x=c,
+            y=r,
+            s=200,
+            alpha=v,
+            color="black",
+            marker=MarkerStyle("o", fillstyle=fill_style[ch]),
+        )
 
     # Start and end points
+    # plt.scatter(
+    #     path[0, 1], path[0, 0], s=625, color="k", marker="s", linewidths=0.0, alpha=0.25
+    # )  # start
     plt.scatter(
-        path[0, 1], path[0, 0], s=400, color="k", linewidths=0.0, alpha=0.25
-    )  # start
-    plt.scatter(mz_goal_loc, 5, s=400, color="g", linewidths=0.0, alpha=0.25)  # end
+        x=mz_goal_loc,
+        y=5,
+        s=500,
+        alpha=0.25,
+        color="g",
+        linewidths=0.0,
+    )  # end
 
     # Add jitter to path (except start and end points)
     path[1:-1, 0] = path[1:-1, 0] + (np.random.rand(len(path) - 2) / 3)
@@ -85,7 +106,7 @@ def plot_path(path, mz, mz_goal_loc, n_steps):
     )
     for t in range(len(path) - 1):
         plt.plot([path[t, 1], path[t + 1, 1]], [path[t, 0], path[t + 1, 0]], c=cmap(t))
-        plt.scatter(path[t + 1, 1], path[t + 1, 0], color=cmap(t))
+        plt.scatter(path[t + 1, 1], path[t + 1, 0], s=30, color=cmap(t))
 
     plt.axis("off")
 

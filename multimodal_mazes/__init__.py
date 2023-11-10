@@ -1,6 +1,7 @@
 from multimodal_mazes.agent import Agent
 from multimodal_mazes.mazes.maze_env import Maze
 from multimodal_mazes.mazes.track_maze import TrackMaze
+from multimodal_mazes.mazes.h_maze import HMaze
 from multimodal_mazes.mazes.maze_trial import maze_trial
 from multimodal_mazes.plotting.visualise import (
     plot_fitness_over_generations,
