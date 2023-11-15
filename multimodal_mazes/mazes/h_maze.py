@@ -8,7 +8,7 @@ class HMaze(Maze):
     H maze class.
     Additional properties:
         goal_channels: np array which stores
-            how the channels encode the goal [n][first lead, second lead]
+            how the channels encode the goal n[first lead, second lead]
     """
 
     def __init__(self, size, n_channels):
@@ -23,12 +23,13 @@ class HMaze(Maze):
             number: of mazes to generate
         Generates:
             mazes: see parent class.
-            goal_locations: parent class.
+            goal_locations: see parent class.
             goal_channels: see above.
+            fastest_solutions: see parent class.
         """
         assert (number % 4) == 0, "Please use a number of mazes divisible by 4"
 
-        # Set goal locations as [n][r, c]
+        # Set goal locations as n[r, c]
         goal_locations = np.repeat(
             [
                 [1, 1],
@@ -40,7 +41,7 @@ class HMaze(Maze):
             axis=0,
         )
 
-        # Set how the channels encode the goal [n][first lead, second lead]
+        # Set how the channels encode the goal n[first lead, second lead]
         goal_channels = np.repeat([[0, 1], [1, 0]], repeats=number // 2, axis=0)
         np.random.shuffle(goal_channels)
 
@@ -50,10 +51,10 @@ class HMaze(Maze):
                 shape=(self.size, self.size, self.n_channels + 1), dtype="double"
             )
 
-            # Generate track (0.) and walls  (1.)
-            maze[:, :, -1] = 1.0
-            maze[self.size // 2, 1:-1, -1] = 0.0
-            maze[1:-1, [1, -2], -1] = 0.0
+            # Generate track (1.0) and walls (.0.0)
+            maze[:, :, -1] = 0.0
+            maze[self.size // 2, 1:-1, -1] = 1.0
+            maze[1:-1, [1, -2], -1] = 1.0
 
             # Set up gradients
             gradient = np.linspace(start=0.1, stop=1.0, num=((self.size - 2) // 2))
@@ -114,3 +115,4 @@ class HMaze(Maze):
         self.mazes = mazes
         self.goal_locations = goal_locations
         self.goal_channels = goal_channels
+        self.fastest_solutions = np.repeat(self.size - 4, repeats=number)

@@ -11,16 +11,17 @@ class Agent:
         """
         Creates a new agent.
         Arguments:
-            location: initial position [x,y].
+            location: initial position [r,c].
             channels: list of active (1) and inative (0) channels e.g. [0,1].
             genome: neat generated genome.
             config: the neat configuration holder.
         """
         self.location = np.array(location)
-        self.channels = np.array(channels)
-        self.channel_inputs = np.zeros((3, len(self.channels)))
+        self.channels = np.array(channels + [1])
+        self.channel_inputs = np.zeros((5, len(self.channels)))
         self.action = []
         self.fitness = []
+        self.sensors = [[0, 0, 0, -1, 1], [-1, 0, 1, 0, 0]]
         self.net = neat.nn.FeedForwardNetwork.create(genome, config)
 
     def sense(self, env):
@@ -30,16 +31,14 @@ class Agent:
             env: a np array of size x size x channels + 1.
             Where [:,:,-1] stores the maze structure.
         Updates:
-            self.channel_inputs: a 3 (range) x max channels np array.
+            self.channel_inputs: a 5 (range) x (max channels + 1) np array.
             All agents will have max channels, but inactive ones will be zeroed.
         """
+        # Generate channel data
+        rc = [self.location[0] + self.sensors[0], self.location[1] + self.sensors[1]]
 
         # Generate channel data
-        self.channel_inputs[:] = env[
-            self.location[0],
-            (self.location[1] - 1) : (self.location[1] + 2),
-            : len(self.channels),
-        ]
+        self.channel_inputs[:] = env[rc[0], rc[1], :]
 
         # Zero out inactive channels
         self.channel_inputs *= self.channels
@@ -66,8 +65,14 @@ class Agent:
 
         # Act
         if action == 0:  # left
-            if env[self.location[0], self.location[1] - 1, -1] == 0.0:
+            if env[self.location[0], self.location[1] - 1, -1] == 1.0:
                 self.location += np.array([0, -1])
         elif action == 1:  # right
-            if env[self.location[0], self.location[1] + 1, -1] == 0.0:
+            if env[self.location[0], self.location[1] + 1, -1] == 1.0:
                 self.location += np.array([0, 1])
+        elif action == 2:  # up
+            if env[self.location[0] - 1, self.location[1], -1] == 1.0:
+                self.location += np.array([-1, 0])
+        elif action == 3:  # down
+            if env[self.location[0] + 1, self.location[1], -1] == 1.0:
+                self.location += np.array([1, 0])

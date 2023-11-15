@@ -14,11 +14,13 @@ class Maze:
             mazes: a list of mazes, each maze is
                 np array of size x size x channels + 1.
                 Where [:,:,-1] stores the maze structure.
-            goal_locations: a np vector of goal locations.
+            goal_locations: a np array with each exit n[r, c].
             maze_type: a string denoting the maze type.
+            fastest_solutions: a np vector with each mazes fastest solution.
         """
         self.size = size
         self.n_channels = n_channels
         self.mazes = []
         self.goal_locations = []
         self.maze_type = []
+        self.fastest_solutions = []

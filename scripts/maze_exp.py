@@ -40,15 +40,15 @@ def eval_fitness(genome_id, genome, config, n_steps=50):
         fitness.append(time)
 
     # Normalise fitness
-    fastest_solution = ((maze.size - 2) // 2) - 1  # should use shortest path
     fitness = 1 - (
-        (np.array(fitness) - fastest_solution) / (n_steps - 1 - fastest_solution)
+        (np.array(fitness) - maze.fastest_solutions)
+        / (n_steps - 1 - maze.fastest_solutions)
     )
 
-    # Calculate fitness per channel
-    fitness = [
-        fitness[maze.goal_channels == ch].mean() for ch in np.unique(maze.goal_channels)
-    ]
+    # # Calculate fitness per channel
+    # fitness = [
+    #     fitness[maze.goal_channels == ch].mean() for ch in np.unique(maze.goal_channels)
+    # ]
 
     # Record data
     agent_record.append(
@@ -57,8 +57,8 @@ def eval_fitness(genome_id, genome, config, n_steps=50):
             p.generation,
             p.species.get_species_id(genome_id),
             np.array(fitness).mean(),
-            fitness[0],
-            fitness[1],
+            # fitness[0],
+            # fitness[1],
         )
     )
 
@@ -144,9 +144,7 @@ if __name__ == "__main__":
     config_path = "../neat_config.ini"
 
     # Generate mazes
-    maze = multimodal_mazes.TrackMaze(
-        size=args.maze_size, n_channels=len(args.channels)
-    )
+    maze = multimodal_mazes.HMaze(size=args.maze_size, n_channels=len(args.channels))
     maze.generate(args.n_mazes)
 
     # Run
@@ -161,8 +159,8 @@ if __name__ == "__main__":
             ("generation", "uint64"),
             ("species", "uint64"),
             ("fitness", "float64"),
-            ("ch0_fitness", "float64"),
-            ("ch1_fitness", "float64"),
+            # ("ch0_fitness", "float64"),
+            # ("ch1_fitness", "float64"),
         ],
     )
     np.save("../results/test.npy", agent_record)

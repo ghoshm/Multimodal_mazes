@@ -1,5 +1,6 @@
 # Maze trial
 
+import numpy as np
 import multimodal_mazes
 
 
@@ -9,7 +10,7 @@ def maze_trial(mz, mz_goal_loc, channels, genome, config, n_steps):
     Arguments:
         mz: a np array of size x size x channels + 1.
             Where [:,:,-1] stores the maze structure.
-        mz_goal_loc: the location of the goal [x].
+        mz_goal_loc: the location of the goal [r,c].
         channels: list of active (1) and inative (0) channels e.g. [0,1].
         genome: neat generated genome.
         config: the neat configuration holder.
@@ -17,7 +18,7 @@ def maze_trial(mz, mz_goal_loc, channels, genome, config, n_steps):
     Returns:
         time: the number of steps taken to solve the maze.
               Returns n_steps-1 if the agent fails.
-        path: a list with the agent's location at each time step [x,y].
+        path: a list with the agent's location at each time step [r,c].
     """
     # Reset agent
     agnt = multimodal_mazes.Agent(
@@ -31,8 +32,8 @@ def maze_trial(mz, mz_goal_loc, channels, genome, config, n_steps):
         agnt.act(mz)
 
         path.append(list(agnt.location))
-        # If the end is reached
-        if agnt.location[1] == mz_goal_loc:
+        # If the exit is reached
+        if np.array_equal(agnt.location, mz_goal_loc):
             break
 
     return time, path  # returning a class is more flexible
