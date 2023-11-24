@@ -8,13 +8,14 @@ import argparse
 import multimodal_mazes
 
 
-def eval_fitness(genome_id, genome, config, n_steps=50):
+def eval_fitness(genome_id, genome, config, n_steps=8):
     """
     Evalutes the fitness of the provided genome.
     Arguments:
         genome_id: neat generated genome number.
         genome: neat generated genome.
         config: the neat configuration holder.
+        n_steps: the max number of simulation steps per maze.
     Returns:
         fitness: the mean fitness across mazes, between [0,1].
     """
@@ -23,12 +24,13 @@ def eval_fitness(genome_id, genome, config, n_steps=50):
         max_fitness = 0.0
         top_genome = []
 
-    fitness = []
+    fitness, times, paths = [], [], []
     # For each maze
     for mz_n, mz in enumerate(maze.mazes):
         # Run trial
-        time, _ = multimodal_mazes.maze_trial(
+        time, path = multimodal_mazes.maze_trial(
             mz,
+            maze.start_locations[mz_n],
             maze.goal_locations[mz_n],
             args.channels,
             genome,
@@ -36,14 +38,22 @@ def eval_fitness(genome_id, genome, config, n_steps=50):
             n_steps,
         )
 
-        # Record fitness
-        fitness.append(time)
+        # Record normalised fitness
+        times.append(
+            1
+            - (
+                (time - maze.fastest_solutions[mz_n])
+                / (n_steps - 1 - maze.fastest_solutions[mz_n])
+            )
+        )
 
-    # Normalise fitness
-    fitness = 1 - (
-        (np.array(fitness) - maze.fastest_solutions)
-        / (n_steps - 1 - maze.fastest_solutions)
-    )
+        paths.append(
+            (maze.d_maps[mz_n].max() - maze.d_maps[mz_n][path[-1][0], path[-1][1]])
+            / maze.d_maps[mz_n].max()
+        )
+
+    # Fitness
+    fitness = (np.array(times) + np.array(paths)) * 0.5
 
     # # Calculate fitness per channel
     # fitness = [

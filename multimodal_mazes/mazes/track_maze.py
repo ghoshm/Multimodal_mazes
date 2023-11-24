@@ -12,6 +12,7 @@ class TrackMaze(Maze):
 
     def __init__(self, size, n_channels):
         super().__init__(size, n_channels)
+        assert (self.size % 2) == 1, "Please use an uneven maze size"
         self.maze_type = "TrackMaze"
         self.goal_channels = []
 
@@ -28,6 +29,11 @@ class TrackMaze(Maze):
         """
         assert (number % 2) == 0, "Please use an even number of mazes"
 
+        # Set start locations as the middle
+        start_locations = np.repeat(
+            [[self.size // 2, self.size // 2]], repeats=number, axis=0
+        )
+
         # Set goal locations as the middle row (self.size // 2) and
         # either the left (1) or right (size - 2) column
         goal_locations = np.repeat(
@@ -40,7 +46,7 @@ class TrackMaze(Maze):
         goal_channels = np.repeat([0, 1], repeats=number // 2)
         np.random.shuffle(goal_channels)
 
-        mazes = []
+        mazes, d_maps, fastest_solutions = [], [], []
         for n in range(number):
             maze = np.zeros(
                 shape=(self.size, self.size, self.n_channels + 1), dtype="double"
@@ -68,10 +74,18 @@ class TrackMaze(Maze):
                     self.size // 2, (self.size + 1) // 2 : -1, goal_channels[n]
                 ] = gradient
 
-            # Append to list
+            # Calculate distance map
+            d_map = Maze.distance_map(mz=maze, exit=goal_locations[n])
+            fastest_solution = d_map[start_locations[n][0], start_locations[n][1]] - 1.0
+
+            # Append to lists
             mazes.append(maze)
+            d_maps.append(d_map)
+            fastest_solutions.append(fastest_solution)
 
         self.mazes = mazes
+        self.start_locations = start_locations
         self.goal_locations = goal_locations
         self.goal_channels = goal_channels
-        self.fastest_solutions = np.repeat((((self.size - 2) // 2) - 1), repeats=number)
+        self.d_maps = d_maps
+        self.fastest_solutions = np.array(fastest_solutions)

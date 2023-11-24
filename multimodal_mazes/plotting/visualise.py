@@ -7,6 +7,13 @@ from netgraph import Graph
 
 plt.style.use("../multimodal_mazes/plotting/style_sheet.mplstyle")
 
+"""
+Ideas:
+    Multiple paths (repeats or different mazes) could be shown as subplots
+        with no axis or maze structure. E.g. for the track maze you could plot
+        agents x mazes (half left and half right).
+"""
+
 
 def plot_fitness_over_generations(x, plot_species=True):
     """
@@ -149,24 +156,23 @@ def plot_architecture(genome, config, node_names):
 
     # Hidden nodes
     # Note: you could define the number of layers using path lengths
-    n_counter = 0.05
+    n_counter = 0.0
     h_layer = 0.2
     offset = (
-        len(config.genome_config.input_keys)
-        // (len(genome.nodes.keys()) - len(config.genome_config.output_keys) + 1)
-        * 0.1
-    )
+        ((len(config.genome_config.input_keys) / 2) + 3)
+        - (len(genome.nodes.keys()) - len(config.genome_config.output_keys))
+    ) * 0.1
     for k in genome.nodes.keys():
         if k > config.genome_config.output_keys[-1]:
             node_positions.update({k: (h_layer, n_counter + offset)})
             n_counter += 0.1
 
-    if n_counter > 0.05:
+    if n_counter > 0.0:
         h_layer += 0.2
 
     # Output nodes
     offset = (
-        len(config.genome_config.input_keys) // len(config.genome_config.output_keys)
+        len(config.genome_config.input_keys) - len(config.genome_config.output_keys) - 1
     ) * 0.1
     for k in config.genome_config.output_keys:
         node_positions.update({k: (h_layer, abs(k) * 0.1 + offset)})

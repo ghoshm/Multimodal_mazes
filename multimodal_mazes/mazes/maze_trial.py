@@ -4,12 +4,13 @@ import numpy as np
 import multimodal_mazes
 
 
-def maze_trial(mz, mz_goal_loc, channels, genome, config, n_steps):
+def maze_trial(mz, mz_start_loc, mz_goal_loc, channels, genome, config, n_steps):
     """
     Tests a single agent on a single maze.
     Arguments:
         mz: a np array of size x size x channels + 1.
             Where [:,:,-1] stores the maze structure.
+        mz_start_loc: the location of the start [r,c].
         mz_goal_loc: the location of the goal [r,c].
         channels: list of active (1) and inative (0) channels e.g. [0,1].
         genome: neat generated genome.
@@ -22,7 +23,7 @@ def maze_trial(mz, mz_goal_loc, channels, genome, config, n_steps):
     """
     # Reset agent
     agnt = multimodal_mazes.Agent(
-        location=[5, 5], channels=channels, genome=genome, config=config
+        location=mz_start_loc, channels=channels, genome=genome, config=config
     )
 
     path = [list(agnt.location)]
@@ -36,4 +37,4 @@ def maze_trial(mz, mz_goal_loc, channels, genome, config, n_steps):
         if np.array_equal(agnt.location, mz_goal_loc):
             break
 
-    return time, path  # returning a class is more flexible
+    return time, path  # returning a class would be more flexible
