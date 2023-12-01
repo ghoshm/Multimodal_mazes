@@ -8,7 +8,7 @@ import argparse
 import multimodal_mazes
 
 
-def eval_fitness(genome_id, genome, config, n_steps=8):
+def eval_fitness(genome_id, genome, config, n_steps=10):
     """
     Evalutes the fitness of the provided genome.
     Arguments:
@@ -73,7 +73,7 @@ def eval_fitness(genome_id, genome, config, n_steps=8):
     )
 
     # Track top genome
-    # Could do this per species
+    # Should track top-n agents
     if np.array(fitness).mean() > max_fitness:
         max_fitness = np.array(fitness).mean()
         top_genome = [genome_id, genome, args.channels]
@@ -154,7 +154,9 @@ if __name__ == "__main__":
     config_path = "../neat_config.ini"
 
     # Generate mazes
-    maze = multimodal_mazes.HMaze(size=args.maze_size, n_channels=len(args.channels))
+    maze = multimodal_mazes.TrackMaze(
+        size=args.maze_size, n_channels=len(args.channels)
+    )
     maze.generate(args.n_mazes)
 
     # Run

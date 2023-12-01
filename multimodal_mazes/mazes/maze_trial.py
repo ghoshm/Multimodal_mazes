@@ -22,7 +22,7 @@ def maze_trial(mz, mz_start_loc, mz_goal_loc, channels, genome, config, n_steps)
         path: a list with the agent's location at each time step [r,c].
     """
     # Reset agent
-    agnt = multimodal_mazes.Agent(
+    agnt = multimodal_mazes.AgentNeat(
         location=mz_start_loc, channels=channels, genome=genome, config=config
     )
 
@@ -30,6 +30,7 @@ def maze_trial(mz, mz_start_loc, mz_goal_loc, channels, genome, config, n_steps)
     # Sensation-action loop
     for time in range(n_steps):
         agnt.sense(mz)
+        agnt.policy()
         agnt.act(mz)
 
         path.append(list(agnt.location))

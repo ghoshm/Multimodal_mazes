@@ -57,22 +57,30 @@ class TrackMaze(Maze):
             maze[self.size // 2, 1:-1, -1] = 1.0
 
             # Set up gradients
-            gradient = np.linspace(start=0.1, stop=1.0, num=((self.size - 2) // 2))
+            gradient = np.linspace(start=0.1, stop=0.5, num=((self.size - 2) // 2))
 
-            # Misleading channel
-            maze[self.size // 2, 1:-1, (1 - goal_channels[n])] = np.concatenate(
-                (gradient[::-1], np.array(0)[None], gradient)
-            )
-
-            # Leading channel
-            if goal_locations[n, 1] == 1:
+            # Cues
+            if goal_locations[n, 1] == 1:  # left
+                # Leading
                 maze[
                     self.size // 2, 1 : (self.size - 1) // 2, goal_channels[n]
                 ] = gradient[::-1]
-            else:
+
+                # Misleading
+                maze[self.size // 2, 1:-1, (1 - goal_channels[n])] = np.concatenate(
+                    (gradient[::-1], np.array(0)[None], gradient * 1)
+                )
+
+            else:  # Right
+                # Leading
                 maze[
                     self.size // 2, (self.size + 1) // 2 : -1, goal_channels[n]
                 ] = gradient
+
+                # Misleading
+                maze[self.size // 2, 1:-1, (1 - goal_channels[n])] = np.concatenate(
+                    (gradient[::-1] * 1, np.array(0)[None], gradient)
+                )
 
             # Calculate distance map
             d_map = Maze.distance_map(mz=maze, exit=goal_locations[n])
