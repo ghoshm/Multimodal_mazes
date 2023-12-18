@@ -24,6 +24,7 @@ class Agent:
         self.sensors = [[0, 0, -1, 1], [-1, 1, 0, 0]]
         self.channel_inputs = np.zeros((len(self.sensors[0]), len(self.channels)))
         self.outputs = np.zeros(len(self.actions[0]))
+        self.type = []
 
     def sense(self, env):
         """

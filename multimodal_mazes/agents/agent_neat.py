@@ -8,6 +8,7 @@ from multimodal_mazes.agents.agent import Agent
 class AgentNeat(Agent):
     def __init__(self, location, channels, genome, config):
         super().__init__(location, channels)
+        self.type = "AgentNeat"
         self.genome = genome
         self.config = config
         self.net = neat.nn.FeedForwardNetwork.create(genome, config)
@@ -36,5 +37,5 @@ class AgentNeat(Agent):
         # Forward pass
         self.outputs = self.net.activate(list(self.channel_inputs.reshape(-1)))
 
-        # Add noise to output (to avoid argmax bias)
+        # Add noise to outputs (to avoid argmax bias)
         self.outputs += np.random.rand(len(self.outputs)) / 1000

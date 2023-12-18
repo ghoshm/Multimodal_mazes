@@ -4,7 +4,16 @@ import numpy as np
 import multimodal_mazes
 
 
-def maze_trial(mz, mz_start_loc, mz_goal_loc, channels, genome, config, n_steps):
+def maze_trial(
+    mz,
+    mz_start_loc,
+    mz_goal_loc,
+    channels,
+    n_steps,
+    agnt=None,
+    genome=None,
+    config=None,
+):
     """
     Tests a single agent on a single maze.
     Arguments:
@@ -22,9 +31,12 @@ def maze_trial(mz, mz_start_loc, mz_goal_loc, channels, genome, config, n_steps)
         path: a list with the agent's location at each time step [r,c].
     """
     # Reset agent
-    agnt = multimodal_mazes.AgentNeat(
-        location=mz_start_loc, channels=channels, genome=genome, config=config
-    )
+    if agnt is None:
+        agnt = multimodal_mazes.AgentNeat(
+            location=mz_start_loc, channels=channels, genome=genome, config=config
+        )
+    else:
+        agnt.location = np.copy(mz_start_loc)
 
     path = [list(agnt.location)]
     # Sensation-action loop

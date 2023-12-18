@@ -33,9 +33,10 @@ def eval_fitness(genome_id, genome, config, n_steps=10):
             maze.start_locations[mz_n],
             maze.goal_locations[mz_n],
             args.channels,
-            genome,
-            config,
             n_steps,
+            agnt=None,
+            genome=genome,
+            config=config,
         )
 
         # Record normalised fitness
