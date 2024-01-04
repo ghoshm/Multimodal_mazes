@@ -8,81 +8,6 @@ import argparse
 import multimodal_mazes
 
 
-def eval_fitness(genome_id, genome, config, n_steps=10):
-    """
-    Evalutes the fitness of the provided genome.
-    Arguments:
-        genome_id: neat generated genome number.
-        genome: neat generated genome.
-        config: the neat configuration holder.
-        n_steps: the max number of simulation steps per maze.
-    Returns:
-        fitness: the mean fitness across mazes, between [0,1].
-    """
-    if genome_id == 1:
-        global max_fitness, top_genome
-        max_fitness = 0.0
-        top_genome = []
-
-    fitness, times, paths = [], [], []
-    # For each maze
-    for mz_n, mz in enumerate(maze.mazes):
-        # Run trial
-        time, path = multimodal_mazes.maze_trial(
-            mz,
-            maze.start_locations[mz_n],
-            maze.goal_locations[mz_n],
-            args.channels,
-            n_steps,
-            agnt=None,
-            genome=genome,
-            config=config,
-        )
-
-        # Record normalised fitness
-        times.append(
-            1
-            - (
-                (time - maze.fastest_solutions[mz_n])
-                / (n_steps - 1 - maze.fastest_solutions[mz_n])
-            )
-        )
-
-        paths.append(
-            (maze.d_maps[mz_n].max() - maze.d_maps[mz_n][path[-1][0], path[-1][1]])
-            / maze.d_maps[mz_n].max()
-        )
-
-    # Fitness
-    fitness = (np.array(times) + np.array(paths)) * 0.5
-
-    # # Calculate fitness per channel
-    # fitness = [
-    #     fitness[maze.goal_channels == ch].mean() for ch in np.unique(maze.goal_channels)
-    # ]
-
-    # Record data
-    agent_record.append(
-        (
-            genome_id,
-            p.generation,
-            p.species.get_species_id(genome_id),
-            np.array(fitness).mean(),
-            # fitness[0],
-            # fitness[1],
-        )
-    )
-
-    # Track top genome
-    # Should track top-n agents
-    if np.array(fitness).mean() > max_fitness:
-        max_fitness = np.array(fitness).mean()
-        top_genome = [genome_id, genome, args.channels]
-
-    # Return fitness
-    return np.array(fitness).mean()
-
-
 def eval_genomes(genomes, config):
     """
     Evaluates the fitness of each genome in the population.
@@ -90,10 +15,25 @@ def eval_genomes(genomes, config):
         genomes: the list of genomes in the current population.
         config: the neat configuration holder.
     Updates:
-        genome.fitness
+        genomes fitness.
+        agent_record.
+        genome_record.
     """
     for genome_id, genome in genomes:
-        genome.fitness = eval_fitness(genome_id, genome, config)
+        genome.fitness = multimodal_mazes.eval_fitness(
+            genome=genome, config=config, channels=args.channels, maze=maze
+        )
+
+        # Record data
+        agent_record.append(
+            (
+                genome_id,
+                p.generation,
+                p.species.get_species_id(genome_id),
+                genome.fitness,
+            )
+        )
+        genome_record.append([genome_id, genome, args.channels])
 
 
 def run_exp(config_path, n_generations):
@@ -122,7 +62,7 @@ def run_exp(config_path, n_generations):
     p.add_reporter(stats)
 
     # Run
-    final_genome = p.run(eval_genomes, n=n_generations)
+    _ = p.run(eval_genomes, n=n_generations)
 
 
 if __name__ == "__main__":
@@ -161,7 +101,7 @@ if __name__ == "__main__":
     maze.generate(args.n_mazes)
 
     # Run
-    agent_record = []
+    agent_record, genome_record = [], []
     run_exp(config_path, args.n_generations)
 
     # Save results
@@ -172,10 +112,8 @@ if __name__ == "__main__":
             ("generation", "uint64"),
             ("species", "uint64"),
             ("fitness", "float64"),
-            # ("ch0_fitness", "float64"),
-            # ("ch1_fitness", "float64"),
         ],
     )
     np.save("../results/test.npy", agent_record)
     with open("../results/test.pickle", "wb") as file:
-        pickle.dump(top_genome, file)
+        pickle.dump(genome_record, file)

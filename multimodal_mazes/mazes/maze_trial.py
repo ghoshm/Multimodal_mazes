@@ -51,3 +51,51 @@ def maze_trial(
             break
 
     return time, path  # returning a class would be more flexible
+
+
+def eval_fitness(genome, config, channels, maze, n_steps=10):
+    """
+    Evalutes the fitness of the provided genome across a set of mazes.
+    Arguments:
+        genome: neat generated genome.
+        config: the neat configuration holder.
+        channels: list of active (1) and inative (0) channels e.g. [0,1].
+        maze: a class containing a set of mazes.
+        n_steps: the max number of simulation steps per maze.
+    Returns:
+        fitness: the mean fitness across mazes, between [0,1].
+    """
+    fitness, times, paths = [], [], []
+    # For each maze
+    for mz_n, mz in enumerate(maze.mazes):
+        # Run trial
+        time, path = multimodal_mazes.maze_trial(
+            mz,
+            maze.start_locations[mz_n],
+            maze.goal_locations[mz_n],
+            channels=channels,
+            n_steps=n_steps,
+            agnt=None,
+            genome=genome,
+            config=config,
+        )
+
+        # Record normalised fitness
+        times.append(
+            1
+            - (
+                (time - maze.fastest_solutions[mz_n])
+                / (n_steps - 1 - maze.fastest_solutions[mz_n])
+            )
+        )
+
+        paths.append(
+            (maze.d_maps[mz_n].max() - maze.d_maps[mz_n][path[-1][0], path[-1][1]])
+            / maze.d_maps[mz_n].max()
+        )
+
+    # Fitness
+    fitness = (np.array(times) + np.array(paths)) * 0.5
+
+    # Return fitness
+    return np.array(fitness).mean()
