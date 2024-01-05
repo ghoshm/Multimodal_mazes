@@ -3,7 +3,8 @@
 import numpy as np
 import neat
 import pickle
-import argparse
+import os
+import shutil
 
 import multimodal_mazes
 
@@ -21,7 +22,11 @@ def eval_genomes(genomes, config):
     """
     for genome_id, genome in genomes:
         genome.fitness = multimodal_mazes.eval_fitness(
-            genome=genome, config=config, channels=args.channels, maze=maze
+            genome=genome,
+            config=config,
+            channels=exp_config["channels"],
+            maze=maze,
+            n_steps=exp_config["n_steps"],
         )
 
         # Record data
@@ -33,14 +38,14 @@ def eval_genomes(genomes, config):
                 genome.fitness,
             )
         )
-        genome_record.append([genome_id, genome, args.channels])
+        genome_record.append([genome_id, genome, exp_config["channels"]])
 
 
-def run_exp(config_path, n_generations):
+def run_exp(neat_config_path, n_generations):
     """
     Runs the experiment.
     Arguments:
-        config_path: the path to the config.ini file.
+        neat_config_path: the path to the neat_config.ini file.
         n_generations: the number of generations to run.
     """
     # Load config
@@ -49,7 +54,7 @@ def run_exp(config_path, n_generations):
         neat.DefaultReproduction,
         neat.DefaultSpeciesSet,
         neat.DefaultStagnation,
-        config_path,
+        neat_config_path,
     )
 
     # Create the population
@@ -66,45 +71,35 @@ def run_exp(config_path, n_generations):
 
 
 if __name__ == "__main__":
-    # User hyperparameters
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--channels",
-        nargs="+",
-        type=int,
-        help="specify active (1) and inative (0) channels e.g. 0 1.",
-    )
-    parser.add_argument(
-        "--maze_size",
-        type=int,
-        help="the size of the square maze.",
-    )
-    parser.add_argument(
-        "--n_mazes",
-        type=int,
-        help="the number of mazes to generate.",
-    )
-    parser.add_argument(
-        "--n_generations",
-        type=int,
-        help="the number of generations to run.",
-    )
-    args = parser.parse_args()
+    # Config files
+    neat_config_path = "../neat_config.ini"
+    exp_config = multimodal_mazes.load_exp_config("../exp_config.ini")
 
-    # Other hyperparameters
-    config_path = "../neat_config.ini"
+    # Create save folder
+    os.makedirs(exp_config["save_path"], exist_ok=True)
+
+    # Copy config files to save folder
+    shutil.copyfile("../neat_config.ini", exp_config["save_path"] + "/neat_config.ini")
+    shutil.copyfile("../exp_config.ini", exp_config["save_path"] + "/exp_config.ini")
 
     # Generate mazes
     maze = multimodal_mazes.TrackMaze(
-        size=args.maze_size, n_channels=len(args.channels)
+        size=exp_config["maze_size"],
+        n_channels=len(exp_config["channels"]),
     )
-    maze.generate(args.n_mazes)
+    maze.generate(exp_config["n_mazes"])
 
     # Run
     agent_record, genome_record = [], []
-    run_exp(config_path, args.n_generations)
+    run_exp(neat_config_path, exp_config["n_generations"])
 
     # Save results
+    try:
+        job_index = str(int(os.environ["PBS_ARRAY_INDEX"]) - 1)  # array job
+    except:
+        job_index = str(99)  # single job
+    save_path = exp_config["save_path"] + "/" + job_index
+
     agent_record = np.array(
         agent_record,
         dtype=[
@@ -114,6 +109,6 @@ if __name__ == "__main__":
             ("fitness", "float64"),
         ],
     )
-    np.save("../results/test.npy", agent_record)
-    with open("../results/test.pickle", "wb") as file:
+    np.save(save_path, agent_record)
+    with open(save_path + ".pickle", "wb") as file:
         pickle.dump(genome_record, file)
