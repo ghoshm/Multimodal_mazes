@@ -87,7 +87,7 @@ if __name__ == "__main__":
         size=exp_config["maze_size"],
         n_channels=len(exp_config["channels"]),
     )
-    maze.generate(exp_config["n_mazes"])
+    maze.generate(exp_config["n_mazes"], exp_config["noise_scale"])
 
     # Run
     agent_record, genome_record = [], []

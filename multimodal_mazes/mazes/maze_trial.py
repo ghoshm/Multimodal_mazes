@@ -53,7 +53,7 @@ def maze_trial(
     return time, path  # returning a class would be more flexible
 
 
-def eval_fitness(genome, config, channels, maze, n_steps):
+def eval_fitness(genome, config, channels, maze, n_steps, agnt=None):
     """
     Evalutes the fitness of the provided genome across a set of mazes.
     Arguments:
@@ -75,7 +75,7 @@ def eval_fitness(genome, config, channels, maze, n_steps):
             maze.goal_locations[mz_n],
             channels=channels,
             n_steps=n_steps,
-            agnt=None,
+            agnt=agnt,
             genome=genome,
             config=config,
         )

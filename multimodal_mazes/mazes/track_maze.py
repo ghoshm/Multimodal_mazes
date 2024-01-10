@@ -16,11 +16,12 @@ class TrackMaze(Maze):
         self.maze_type = "TrackMaze"
         self.goal_channels = []
 
-    def generate(self, number):
+    def generate(self, number, noise_scale):
         """
         Generates track mazes.
         Arguments:
-            number: of mazes to generate
+            number: of mazes to generate.
+            noise_scale: scale of gaussian noise.
         Generates:
             mazes: see parent class.
             goal_locations: parent class.
@@ -81,6 +82,13 @@ class TrackMaze(Maze):
                 maze[self.size // 2, 1:-1, (1 - goal_channels[n])] = np.concatenate(
                     (gradient[::-1] * 1, np.array(0)[None], gradient)
                 )
+
+            # Noise
+            r, c = np.where(maze[:, :, -1])
+            maze[r, c, :-1] += np.random.normal(
+                loc=0.0, scale=noise_scale, size=(len(r), (maze.shape[2] - 1))
+            )
+            maze = np.clip(maze, a_min=0.0, a_max=1.0)
 
             # Calculate distance map
             d_map = Maze.distance_map(mz=maze, exit=goal_locations[n])
