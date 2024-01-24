@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from matplotlib.markers import MarkerStyle
 from netgraph import Graph
+import multimodal_mazes
+
 
 plt.style.use("../multimodal_mazes/plotting/style_sheet.mplstyle")
 
@@ -139,7 +141,6 @@ def plot_architecture(genome, config, node_names):
     Note: For help with Graph see line 1166
         https://github.com/paulbrodersen/netgraph/blob/master/netgraph/_main.py
     """
-    plt.subplots()
     # Edges
     edges = []  # (source, target, weight)
     for cg in genome.connections.values():
@@ -148,6 +149,7 @@ def plot_architecture(genome, config, node_names):
             edges.append((source, target, cg.weight))
 
     # Nodes
+    nodes = np.unique(np.array(edges)[:, :2])
     node_positions = {}  # node : (x, y)
 
     # Input nodes
@@ -155,43 +157,126 @@ def plot_architecture(genome, config, node_names):
         node_positions.update({k: (0.0, abs(k) * 0.1)})
 
     # Hidden nodes
-    # Note: you could define the number of layers using path lengths
-    n_counter = 0.0
-    h_layer = 0.2
-    offset = (
-        ((len(config.genome_config.input_keys) / 2) + 3)
-        - (len(genome.nodes.keys()) - len(config.genome_config.output_keys))
-    ) * 0.1
-    for k in genome.nodes.keys():
-        if k > config.genome_config.output_keys[-1]:
-            node_positions.update({k: (h_layer, n_counter + offset)})
-            n_counter += 0.1
+    center = (len(config.genome_config.input_keys) + 1) / 2
+    h_nodes, layers = multimodal_mazes.define_layers(genome, config)
+    if len(layers) > 0:
+        for layer in np.unique(layers):
+            n_nodes_l = sum(layers == layer)
+            pos = np.linspace(
+                start=center - n_nodes_l / 2, stop=center + n_nodes_l / 2, num=n_nodes_l
+            )
 
-    if n_counter > 0.0:
-        h_layer += 0.2
+            if n_nodes_l == 1:
+                pos += 0.5
+
+            for a, k in enumerate(h_nodes[layers == layer]):
+                node_positions.update({k: (layer * 0.2, pos[a] * 0.1)})
+    else:
+        layers = [0]
 
     # Output nodes
     offset = (
         len(config.genome_config.input_keys) - len(config.genome_config.output_keys) - 1
     ) * 0.1
     for k in config.genome_config.output_keys:
-        node_positions.update({k: (h_layer, abs(k) * 0.1 + offset)})
+        node_positions.update({k: ((max(layers) + 1) * 0.2, abs(k) * 0.1 + offset)})
 
     # Plotting
     cmap = "PiYG"
     Graph(
-        edges, node_layout=node_positions, edge_cmap=cmap, edge_width=1.0, arrows=True
+        edges,
+        node_layout=node_positions,
+        node_size=3,
+        edge_cmap=cmap,
+        edge_width=1.0,
+        arrows=True,
     )
 
     # Labels
     # Input nodes
     for k in config.genome_config.input_keys:
-        plt.text(-0.15, (abs(k) * 0.1) - 0.01, node_names[k], fontsize=15.0)
+        if np.isin(k, nodes):
+            plt.text(-0.2, (abs(k) * 0.1) - 0.01, node_names[k], fontsize=15.0)
 
     # Output nodes
     for k in config.genome_config.output_keys:
-        plt.text(
-            h_layer + 0.05, (abs(k) * 0.1) - 0.01 + offset, node_names[k], fontsize=15.0
-        )
+        if np.isin(k, nodes):
+            plt.text(
+                (max(layers) + 1) * 0.2 + 0.05,
+                (abs(k) * 0.1) - 0.01 + offset,
+                node_names[k],
+                fontsize=15.0,
+            )
 
-    plt.show()
+
+def plot_robustness(
+    condition_values,
+    condition_results,
+    condition_label,
+    noise_baseline,
+    agents,
+    genomes,
+    config,
+    node_names,
+):
+    """
+    Plots robustness to a condition (e.g. sensor noise vs fitness),
+        and the least and most robust architectures.
+    Arguments:
+        condition_values: a np vector of condition values.
+        condition_results: a np array with each agents fitness per condition value.
+        condition_label: a string to label subplot 0.
+        noise_baseline: as condition_results, but using random agents.
+        agents: a list of indicies, of the genomes to test.
+        genomes: neat generated genomes.
+        config: the neat configuration holder.
+        node_names: a dictionary with value:name pairs for
+            each input and output node.
+    Plots: three subplots
+        0: condition vs fitness + a noise floor. Highlights the most and least robust networks.
+        1: the architecture of the least robust network.
+        2: the architecture of the most robust network.
+    """
+
+    labels = ["Least robust", "Most robust"]
+    col = ["xkcd:purple", "xkcd:dark seafoam"]
+    _, ax = plt.subplots(
+        1, 3, gridspec_kw={"width_ratios": [0.4, 0.3, 0.3]}, figsize=(15, 5)
+    )
+
+    plt.sca(ax[0])
+    # Plot condition vs fitness
+    plt.plot(condition_values, condition_results.T, c="k", alpha=0.1)
+
+    # Plot condition vs noise baseline
+    plt.plot(
+        condition_values, np.mean(noise_baseline, axis=0), c="xkcd:gray", ls="dotted"
+    )
+    plt.fill_between(
+        condition_values,
+        np.min(noise_baseline, axis=0),
+        np.max(noise_baseline, axis=0),
+        color="xkcd:gray",
+        alpha=0.25,
+    )
+
+    plt.ylim(0, 1.0)
+    plt.title(condition_label)
+    plt.ylabel("Fitness")
+
+    # Least and most robust networks
+    condition_results_min = np.argmin(np.trapz(y=condition_results, x=condition_values))
+    condition_results_max = np.argmax(np.trapz(y=condition_results, x=condition_values))
+
+    for a, n in enumerate([condition_results_min, condition_results_max]):
+        # Condition vs fitness
+        plt.sca(ax[0])
+        plt.plot(condition_values, condition_results[n], c=col[a], alpha=0.75)
+
+        # Architecture
+        plt.sca(ax[a + 1])
+        plt.title(labels[a])
+        _, genome, _ = genomes[agents[n]]
+        genome = multimodal_mazes.prune_architecture(genome, config)
+        multimodal_mazes.plot_architecture(genome, config, node_names=node_names)
+        plt.ylim([0.05, 0.85])

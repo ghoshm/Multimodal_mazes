@@ -16,6 +16,8 @@ class Agent:
             sensors: inputs in [r,c].
             channel_inputs: the agents inputs from it's location (sensors x channels).
             outputs: the policy assigned value for each action.
+            type: a string denoting the type of agent.
+            sensor_noise_scale: the scale of the noise applied to every sensor.
         """
         self.location = np.array(location)
         self.channels = np.array(channels)
@@ -25,6 +27,7 @@ class Agent:
         self.channel_inputs = np.zeros((len(self.sensors[0]), len(self.channels)))
         self.outputs = np.zeros(len(self.actions[0]))
         self.type = []
+        self.sensor_noise_scale = 0.0
 
     def sense(self, env):
         """
@@ -38,8 +41,13 @@ class Agent:
         """
         # Generate channel data
         rc = [self.location[0] + self.sensors[0], self.location[1] + self.sensors[1]]
-
         self.channel_inputs[:] = env[rc[0], rc[1], :-1]
+
+        # Add channel noise
+        self.channel_inputs += np.random.normal(
+            loc=0.0, scale=self.sensor_noise_scale, size=self.channel_inputs.shape
+        )
+        self.channel_inputs = np.clip(self.channel_inputs, a_min=0.0, a_max=1.0)
 
         # Zero out inactive channels
         self.channel_inputs *= self.channels

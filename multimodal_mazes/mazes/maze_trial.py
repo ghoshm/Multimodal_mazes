@@ -9,6 +9,7 @@ def maze_trial(
     mz_start_loc,
     mz_goal_loc,
     channels,
+    sensor_noise_scale,
     n_steps,
     agnt=None,
     genome=None,
@@ -22,6 +23,7 @@ def maze_trial(
         mz_start_loc: the location of the start [r,c].
         mz_goal_loc: the location of the goal [r,c].
         channels: list of active (1) and inative (0) channels e.g. [0,1].
+        sensor_noise_scale: the scale of the noise applied to every sensor.
         genome: neat generated genome.
         config: the neat configuration holder.
         n_steps: number of simulation steps.
@@ -33,7 +35,11 @@ def maze_trial(
     # Reset agent
     if agnt is None:
         agnt = multimodal_mazes.AgentNeat(
-            location=mz_start_loc, channels=channels, genome=genome, config=config
+            location=mz_start_loc,
+            channels=channels,
+            sensor_noise_scale=sensor_noise_scale,
+            genome=genome,
+            config=config,
         )
     else:
         agnt.location = np.copy(mz_start_loc)
@@ -53,7 +59,9 @@ def maze_trial(
     return time, path  # returning a class would be more flexible
 
 
-def eval_fitness(genome, config, channels, maze, n_steps, agnt=None):
+def eval_fitness(
+    genome, config, channels, sensor_noise_scale, maze, n_steps, agnt=None
+):
     """
     Evalutes the fitness of the provided genome across a set of mazes.
     Arguments:
@@ -70,10 +78,11 @@ def eval_fitness(genome, config, channels, maze, n_steps, agnt=None):
     for mz_n, mz in enumerate(maze.mazes):
         # Run trial
         time, path = multimodal_mazes.maze_trial(
-            mz,
-            maze.start_locations[mz_n],
-            maze.goal_locations[mz_n],
+            mz=mz,
+            mz_start_loc=maze.start_locations[mz_n],
+            mz_goal_loc=maze.goal_locations[mz_n],
             channels=channels,
+            sensor_noise_scale=sensor_noise_scale,
             n_steps=n_steps,
             agnt=agnt,
             genome=genome,

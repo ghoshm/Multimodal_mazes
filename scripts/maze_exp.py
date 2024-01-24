@@ -24,6 +24,7 @@ def eval_genomes(genomes, config):
         genome.fitness = multimodal_mazes.eval_fitness(
             genome=genome,
             config=config,
+            sensor_noise_scale=exp_config["sensor_noise_scale"],
             channels=exp_config["channels"],
             maze=maze,
             n_steps=exp_config["n_steps"],
@@ -87,7 +88,7 @@ if __name__ == "__main__":
         size=exp_config["maze_size"],
         n_channels=len(exp_config["channels"]),
     )
-    maze.generate(exp_config["n_mazes"], exp_config["noise_scale"])
+    maze.generate(exp_config["n_mazes"], exp_config["maze_noise_scale"])
 
     # Run
     agent_record, genome_record = [], []

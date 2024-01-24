@@ -6,9 +6,10 @@ from multimodal_mazes.agents.agent import Agent
 
 
 class AgentNeat(Agent):
-    def __init__(self, location, channels, genome, config):
+    def __init__(self, location, channels, sensor_noise_scale, genome, config):
         super().__init__(location, channels)
         self.type = "AgentNeat"
+        self.sensor_noise_scale = sensor_noise_scale
         self.genome = genome
         self.config = config
         self.net = neat.nn.FeedForwardNetwork.create(genome, config)
@@ -18,6 +19,7 @@ class AgentNeat(Agent):
         Arguments:
             location: initial position [r,c].
             channels: list of active (1) and inative (0) channels e.g. [0,1].
+            sensor_noise_scale: the scale of the noise applied to every sensor. 
             genome: neat generated genome.
             config: the neat configuration holder.
         Properties:

@@ -14,8 +14,14 @@ from multimodal_mazes.plotting.visualise import (
     plot_fitness_over_generations,
     plot_path,
     plot_architecture,
+    plot_robustness,
 )
 from multimodal_mazes.analysis.architecture_analysis import (
     prune_architecture,
+    define_layers,
     architecture_metrics,
+)
+from multimodal_mazes.analysis.robustness import (
+    robustness_to_maze_noise,
+    robustness_to_sensor_noise,
 )
