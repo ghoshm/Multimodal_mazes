@@ -10,6 +10,7 @@ def maze_trial(
     mz_goal_loc,
     channels,
     sensor_noise_scale,
+    drop_connect_p,
     n_steps,
     agnt=None,
     genome=None,
@@ -24,6 +25,7 @@ def maze_trial(
         mz_goal_loc: the location of the goal [r,c].
         channels: list of active (1) and inative (0) channels e.g. [0,1].
         sensor_noise_scale: the scale of the noise applied to every sensor.
+        drop_connect_p: the probability of edge drop out, per time step.
         genome: neat generated genome.
         config: the neat configuration holder.
         n_steps: number of simulation steps.
@@ -38,6 +40,7 @@ def maze_trial(
             location=mz_start_loc,
             channels=channels,
             sensor_noise_scale=sensor_noise_scale,
+            drop_connect_p=drop_connect_p,
             genome=genome,
             config=config,
         )
@@ -60,7 +63,14 @@ def maze_trial(
 
 
 def eval_fitness(
-    genome, config, channels, sensor_noise_scale, maze, n_steps, agnt=None
+    genome,
+    config,
+    channels,
+    sensor_noise_scale,
+    drop_connect_p,
+    maze,
+    n_steps,
+    agnt=None,
 ):
     """
     Evalutes the fitness of the provided genome across a set of mazes.
@@ -68,6 +78,8 @@ def eval_fitness(
         genome: neat generated genome.
         config: the neat configuration holder.
         channels: list of active (1) and inative (0) channels e.g. [0,1].
+        sensor_noise_scale: the scale of the noise applied to every sensor.
+        drop_connect_p: the probability of edge drop out, per time step.
         maze: a class containing a set of mazes.
         n_steps: the max number of simulation steps per maze.
     Returns:
@@ -83,6 +95,7 @@ def eval_fitness(
             mz_goal_loc=maze.goal_locations[mz_n],
             channels=channels,
             sensor_noise_scale=sensor_noise_scale,
+            drop_connect_p=drop_connect_p,
             n_steps=n_steps,
             agnt=agnt,
             genome=genome,

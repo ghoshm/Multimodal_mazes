@@ -24,4 +24,5 @@ from multimodal_mazes.analysis.architecture_analysis import (
 from multimodal_mazes.analysis.robustness import (
     robustness_to_maze_noise,
     robustness_to_sensor_noise,
+    robustness_to_drop_connect,
 )

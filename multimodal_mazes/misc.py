@@ -21,6 +21,7 @@ def load_exp_config(path):
     n_steps = int(exp_config["DEFAULT"]["n_steps"])
     maze_noise_scale = float(exp_config["DEFAULT"]["maze_noise_scale"])
     sensor_noise_scale = float(exp_config["DEFAULT"]["sensor_noise_scale"])
+    drop_connect_p = float(exp_config["DEFAULT"]["drop_connect_p"])
     save_path = exp_config["DEFAULT"]["save_path"]
 
     exp_config_dict = {
@@ -31,6 +32,7 @@ def load_exp_config(path):
         "n_steps": n_steps,
         "maze_noise_scale": maze_noise_scale,
         "sensor_noise_scale": sensor_noise_scale,
+        "drop_connect_p": drop_connect_p,
         "save_path": save_path,
     }
 
