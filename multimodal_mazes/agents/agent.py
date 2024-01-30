@@ -22,7 +22,7 @@ class Agent:
         self.location = np.array(location)
         self.channels = np.array(channels)
         self.fitness = []
-        self.actions = [[0, 0, -1, 1], [-1, 1, 0, 0]]
+        self.actions = [[0, 0, -1, 1, 0], [-1, 1, 0, 0, 0]]
         self.sensors = [[0, 0, -1, 1], [-1, 1, 0, 0]]
         self.channel_inputs = np.zeros((len(self.sensors[0]), len(self.channels)))
         self.outputs = np.zeros(len(self.actions[0]))

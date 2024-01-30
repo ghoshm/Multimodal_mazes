@@ -236,7 +236,9 @@ def architecture_metrics(genome, config, channels):
     out_degree_mean = np.array(tmp).mean()
 
     # Density
-    density = len(edges) / (len(nodes) ** 2)  # between 0 (sparse) and 1 (dense)
+    density = len(edges) / (
+        (len(nodes[nodes < 0]) * len(nodes[nodes >= 0])) + (len(nodes[nodes >= 0]) ** 2)
+    )  # between 0 (sparse) and 1 (dense)
 
     # Reciprocity
     reciprocity = nx.overall_reciprocity(

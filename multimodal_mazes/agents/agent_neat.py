@@ -16,7 +16,7 @@ class AgentNeat(Agent):
         self.drop_connect_p = drop_connect_p
         self.genome = genome
         self.config = config
-        self.net = neat.nn.FeedForwardNetwork.create(genome, config)
+        self.net = neat.nn.RecurrentNetwork.create(genome, config)
         self.netmemory = copy.deepcopy(self.net.node_evals)
 
         """
