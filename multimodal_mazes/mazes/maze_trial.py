@@ -46,6 +46,7 @@ def maze_trial(
         )
     else:
         agnt.location = np.copy(mz_start_loc)
+        agnt.memory = np.zeros_like(agnt.outputs)
 
     path = [list(agnt.location)]
     # Sensation-action loop
@@ -121,3 +122,38 @@ def eval_fitness(
 
     # Return fitness
     return np.array(fitness).mean()
+
+
+def id_top_agents(fitness_cutoff, exp_data, maze, exp_config, genomes, config):
+    """
+    Returns a list of agents with both evolutionary (training) and test
+        fitness >= fitness_cutoff.
+    Arguments:
+        fitness_cutoff: the cuttoff value to use (between 0 and 1).
+        exp_data: a structured np array of agents x info (e.g. fitness).
+        maze: a class containing a set of mazes.
+        exp_config: a dict with the exp configuration.
+        genomes: neat generated genomes.
+        config: the neat configuration holder.
+    Returns:
+        top_agents: agents: a list of indicies of top agents / genomes.
+    """
+
+    top_agents = []
+    for g in np.where(exp_data["fitness"] >= fitness_cutoff)[0]:
+        _, genome, channels = genomes[g]
+        genome = multimodal_mazes.prune_architecture(genome, config)
+        fitness = multimodal_mazes.eval_fitness(
+            genome=genome,
+            config=config,
+            channels=channels,
+            sensor_noise_scale=exp_config["sensor_noise_scale"],
+            drop_connect_p=exp_config["drop_connect_p"],
+            maze=maze,
+            n_steps=exp_config["n_steps"],
+        )
+
+        if fitness >= fitness_cutoff:
+            top_agents.append(g)
+
+    return top_agents

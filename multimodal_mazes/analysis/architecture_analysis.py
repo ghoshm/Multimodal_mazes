@@ -1,6 +1,7 @@
 # architecture analysis
 import numpy as np
 import networkx as nx
+import multimodal_mazes
 
 
 def prune_architecture(genome, config):
@@ -250,28 +251,60 @@ def architecture_metrics(genome, config, channels):
 
     # Output
     metrics_n = {
-        "nodes_n": nodes_n,
-        "nodes_input": nodes_input,
-        "nodes_hidden": nodes_hidden,
-        "nodes_output": nodes_output,
-        "edges_n": edges_n,
-        "layers_n": max(np.append(layers, 0)) + 2,
-        "in_degree": in_degree_mean,
-        "out_degree": out_degree_mean,
+        "$\mathregular{\eta}$": nodes_n,
+        "$\mathregular{\eta_{input}}$": nodes_input,
+        "$\mathregular{\eta_{hidden}}$": nodes_hidden,
+        "$\mathregular{\eta_{output}}$": nodes_output,
+        "$\mathregular{E}$": edges_n,
+        "$\mathregular{\iota}$": max(np.append(layers, 0)) + 2,
+        "$\mathregular{\eta_{\overline{in}}}$": in_degree_mean,
+        "$\mathregular{\eta_{\overline{out}}}$": out_degree_mean,
     }
 
     metrics_p = {
-        "edges_f": edges_f,
-        "edges_fs": edges_fs,
-        "edges_r": edges_r,
-        "edges_l": edges_l,
-        "edges_b": edges_b,
-        "edges_bs": edges_bs,
-        "density": density,
-        "reciprocity": reciprocity,
-        "transitivity": transitivity,
-        "edges_e_i": edges_e_i,
-        "multi_uni_r": multi_uni_r,
+        "$\mathregular{i_\iota j_{\iota+1}}$": edges_f,
+        "$\mathregular{i_\iota j_{\iota+n}}$": edges_fs,
+        "$\mathregular{i i}$": edges_r,
+        "$\mathregular{i_\iota j_\iota}$": edges_l,
+        "$\mathregular{i_\iota j_{\iota-1}}$": edges_b,
+        "$\mathregular{i_\iota j_{\iota-n}}$": edges_bs,
+        "$\mathregular{D_{ensity}}$": density,
+        "$\mathregular{R_{eciprocity}}$": reciprocity,
+        "$\mathregular{T_{ransitivity}}$": transitivity,
+        "$\mathregular{E_{+}:E_{-}}$": edges_e_i,
+        "$\mathregular{\eta_{multi}:\eta_{uni}}$": multi_uni_r,
     }
 
     return metrics_n, metrics_p
+
+
+def architecture_metrics_matrices(agents, genomes, config):
+    """
+    Builds two matricies describing a list of agents.
+    Arguments:
+        agents: a list of indicies, of the genomes to test.
+        genomes: neat generated genomes.
+        config: the neat configuration holder.
+    Returns:
+        metrics_n: an agents x metrics np array with variable limits.
+        metrics_p: an agents x metrics np array between 0 and 1.
+        metrics_n.keys(): labels for metrics n.
+        metrics_p.keys(): labels for metrics p.
+    """
+
+    agents_metrics_n, agents_metrics_p = [], []
+    for g in agents:
+        _, genome, channels = genomes[g]
+        genome = multimodal_mazes.prune_architecture(genome, config)
+        metrics_n, metrics_p = multimodal_mazes.architecture_metrics(
+            genome, config, channels
+        )
+        agents_metrics_n.append(list(metrics_n.values()))
+        agents_metrics_p.append(list(metrics_p.values()))
+
+    return (
+        np.array(agents_metrics_n),
+        np.array(agents_metrics_p),
+        metrics_n.keys(),
+        metrics_p.keys(),
+    )

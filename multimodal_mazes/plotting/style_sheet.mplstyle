@@ -44,7 +44,6 @@ legend.frameon : False
 legend.fontsize : 8 
 
 # TICKS 
-
 xtick.labelsize: 20
 ytick.labelsize: 20
 xtick.major.width : 2

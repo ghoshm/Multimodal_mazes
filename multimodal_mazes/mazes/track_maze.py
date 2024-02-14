@@ -16,12 +16,13 @@ class TrackMaze(Maze):
         self.maze_type = "TrackMaze"
         self.goal_channels = []
 
-    def generate(self, number, noise_scale):
+    def generate(self, number, noise_scale, gaps):
         """
         Generates track mazes.
         Arguments:
             number: of mazes to generate.
             noise_scale: scale of gaussian noise.
+            gaps: add sensory gaps or not [True, False].
         Generates:
             mazes: see parent class.
             goal_locations: parent class.
@@ -63,9 +64,9 @@ class TrackMaze(Maze):
             # Cues
             if goal_locations[n, 1] == 1:  # left
                 # Leading
-                maze[
-                    self.size // 2, 1 : (self.size - 1) // 2, goal_channels[n]
-                ] = gradient[::-1]
+                maze[self.size // 2, 1 : (self.size - 1) // 2, goal_channels[n]] = (
+                    gradient[::-1]
+                )
 
                 # Misleading
                 maze[self.size // 2, 1:-1, (1 - goal_channels[n])] = np.concatenate(
@@ -74,9 +75,9 @@ class TrackMaze(Maze):
 
             else:  # Right
                 # Leading
-                maze[
-                    self.size // 2, (self.size + 1) // 2 : -1, goal_channels[n]
-                ] = gradient
+                maze[self.size // 2, (self.size + 1) // 2 : -1, goal_channels[n]] = (
+                    gradient
+                )
 
                 # Misleading
                 maze[self.size // 2, 1:-1, (1 - goal_channels[n])] = np.concatenate(
@@ -89,6 +90,13 @@ class TrackMaze(Maze):
                 loc=0.0, scale=noise_scale, size=(len(r), (maze.shape[2] - 1))
             )
             maze = np.clip(maze, a_min=0.0, a_max=1.0)
+
+            # Gaps
+            if gaps:
+                if goal_locations[n, 1] == 1:  # left
+                    maze[goal_locations[n, 0], goal_locations[n, 1] + 1, :2] = 0.0
+                else:
+                    maze[goal_locations[n, 0], goal_locations[n, 1] - 1, :2] = 0.0
 
             # Calculate distance map
             d_map = Maze.distance_map(mz=maze, exit=goal_locations[n])

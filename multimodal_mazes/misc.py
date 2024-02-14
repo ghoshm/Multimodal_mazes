@@ -20,6 +20,7 @@ def load_exp_config(path):
     n_generations = int(exp_config["DEFAULT"]["n_generations"])
     n_steps = int(exp_config["DEFAULT"]["n_steps"])
     maze_noise_scale = float(exp_config["DEFAULT"]["maze_noise_scale"])
+    maze_gaps = int(exp_config["DEFAULT"]["maze_gaps"])
     sensor_noise_scale = float(exp_config["DEFAULT"]["sensor_noise_scale"])
     drop_connect_p = float(exp_config["DEFAULT"]["drop_connect_p"])
     save_path = exp_config["DEFAULT"]["save_path"]
@@ -31,6 +32,7 @@ def load_exp_config(path):
         "n_generations": n_generations,
         "n_steps": n_steps,
         "maze_noise_scale": maze_noise_scale,
+        "maze_gaps": maze_gaps,
         "sensor_noise_scale": sensor_noise_scale,
         "drop_connect_p": drop_connect_p,
         "save_path": save_path,
