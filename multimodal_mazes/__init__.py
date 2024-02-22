@@ -6,6 +6,7 @@ from multimodal_mazes.agents.agent_rulebased import AgentRuleBased
 from multimodal_mazes.mazes.maze_env import Maze
 from multimodal_mazes.mazes.track_maze import TrackMaze
 from multimodal_mazes.mazes.h_maze import HMaze
+from multimodal_mazes.mazes.general_maze import GeneralMaze
 from multimodal_mazes.misc import load_exp_config
 from multimodal_mazes.mazes.maze_trial import (
     maze_trial,

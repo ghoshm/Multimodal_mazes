@@ -72,7 +72,7 @@ def plot_path(path, mz, mz_goal_loc, n_steps):
         n_steps: the number of simulation steps.
     Plots:
         The maze structure as path (white) and walls (grey).
-        The start and end locations as grey and green circles.
+        Green circles mark the start (unfilled) and end (filled) locations.
         The agents path with time represented by color.
     """
     plt.subplots()
@@ -85,14 +85,17 @@ def plot_path(path, mz, mz_goal_loc, n_steps):
         r, c = np.where(mz[:, :, ch])
         v = mz[:, :, ch][mz[:, :, ch] > 0]
 
-        plt.scatter(
-            x=c,
-            y=r,
-            s=200,
-            alpha=v,
-            color="black",
-            marker=MarkerStyle("o", fillstyle=fill_style[ch]),
-        )
+        try:
+            plt.scatter(
+                x=c,
+                y=r,
+                s=200,
+                alpha=v,
+                color="black",
+                marker=MarkerStyle("o", fillstyle=fill_style[ch]),
+            )
+        except:  # for when there are no sensory cues
+            pass
 
     # Start and end points
     plt.scatter(

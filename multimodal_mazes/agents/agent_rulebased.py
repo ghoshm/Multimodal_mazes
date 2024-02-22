@@ -37,3 +37,6 @@ class AgentRuleBased(Agent):
         if self.memory_on:
             self.outputs += self.memory  # x_t-1
             self.memory = np.copy(summed_inputs)  # x_t
+
+        # Add noise to outputs (to avoid argmax bias)
+        self.outputs += np.random.rand(len(self.outputs)) / 1000

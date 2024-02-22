@@ -54,7 +54,7 @@ class TrackMaze(Maze):
                 shape=(self.size, self.size, self.n_channels + 1), dtype="double"
             )
 
-            # Generate track (1.0) and walls (0.)
+            # Generate track (1.0) and walls (0.0)
             maze[:, :, -1] = 0.0
             maze[self.size // 2, 1:-1, -1] = 1.0
 

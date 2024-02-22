@@ -87,13 +87,13 @@ class HMaze(Maze):
             # Leading cues
             # Horizontal
             if goal_locations[n, 1] == 1:
-                maze[
-                    self.size // 2, 1 : (self.size - 1) // 2, goal_channels[n, 0]
-                ] = gradient_h[::-1]
+                maze[self.size // 2, 1 : (self.size - 1) // 2, goal_channels[n, 0]] = (
+                    gradient_h[::-1]
+                )
             else:
-                maze[
-                    self.size // 2, (self.size + 1) // 2 : -1, goal_channels[n, 0]
-                ] = gradient_h
+                maze[self.size // 2, (self.size + 1) // 2 : -1, goal_channels[n, 0]] = (
+                    gradient_h
+                )
 
             # Vertical
             if goal_locations[n, 0] == 1:  # up

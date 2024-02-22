@@ -1,6 +1,7 @@
 # Maze environment
 
 import numpy as np
+from multimodal_mazes.agents.agent import Agent
 
 
 class Maze:
@@ -62,3 +63,39 @@ class Maze:
             c_map[cur_rc[0], cur_rc[1]] = 0.0
 
         return d_map
+
+    def shortest_path(mz, d_map, start, exit):
+        """
+        Returns the shortest path (start-exit) through a given maze.
+        Arguments:
+            mz: a np array of size x size x channels + 1.
+                Where [:,:,-1] stores the maze structure.
+            d_map: a np.array of size x size.
+                Which stores each points distance from the exit.
+            start: [r, c].
+            exit: [r, c].
+        Returns:
+            path: a list with the shortest path positions [r,c].
+                Inc the start and exit.
+        """
+
+        d_map_inv = (d_map.max() - d_map) / d_map.max()
+        d_map_inv = d_map_inv * mz[:, :, -1]
+        agnt = Agent(location=start, channels=[1, 1])
+
+        path = [list(agnt.location)]
+        while (agnt.location != exit).any():
+
+            # Record best action
+            action_dists = d_map_inv[
+                agnt.location[0] + agnt.actions[0],
+                agnt.location[1] + agnt.actions[1],
+            ]
+
+            action = np.argmax(action_dists)
+
+            # Take action
+            agnt.location += [agnt.actions[0][action], agnt.actions[1][action]]
+            path.append(list(agnt.location))
+
+        return path
