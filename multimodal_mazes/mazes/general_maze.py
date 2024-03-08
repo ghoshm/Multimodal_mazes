@@ -14,8 +14,19 @@ class GeneralMaze(Maze):
         assert (self.size % 2) == 1, "Please use an uneven maze size"
         self.maze_type = "GeneralMaze"
 
-    def generate(self, number, path_fidelity, sparsity):
-        """ """
+    def generate(self, number, noise_scale):
+        """
+        Generates general mazes.
+        Arguments:
+            number: of mazes to generate.
+            noise_scale: scale of gaussian noise.
+        Generates:
+            mazes: see parent class.
+            stat_locations: parent class.
+            goal_locations: parent class.
+            d_maps: parent class.
+            fastest_solutions: parent class.
+        """
         corners = np.array(
             [
                 [1, 1],
@@ -59,18 +70,14 @@ class GeneralMaze(Maze):
             )
 
             # Fill sensory cues
-            maze = path_fidelity_fill(
-                mz=maze,
-                d_map=d_map,
-                path=path,
-                path_fidelity=path_fidelity,
-            )
+            maze = distance_fill(mz=maze, d_map=d_map)
 
-            # Sparsity
-            maze = sparse_fill(
-                mz=maze,
-                sparsity=sparsity,
+            # Noise
+            r, c = np.where(maze[:, :, -1])
+            maze[r, c, :-1] += np.random.normal(
+                loc=0.0, scale=noise_scale, size=(len(r), (maze.shape[2] - 1))
             )
+            maze = np.clip(maze, a_min=0.0, a_max=1.0)
 
             # Append to lists
             mazes.append(maze)
@@ -129,6 +136,30 @@ def aldous_broder(size):
     return maze
 
 
+def distance_fill(mz, d_map):
+    """
+    Fill sensory cues into a single maze,
+        based on distance from exit.
+    Arguments:
+        mz: a np array of size x size x channels + 1.
+            Where [:,:,-1] stores the maze structure.
+        d_map: a np.array of size x size.
+            Which stores each points distance from the exit.
+    Returns:
+        mz: with the sensory cues filled in.
+    """
+
+    # Set each positions sensory data depending on its distance from the exit
+    for ch in range(mz.shape[2] - 1):
+        mz[:, :, ch] = (d_map.max() - d_map) / d_map.max()
+        mz[:, :, ch] *= mz[:, :, -1]
+
+    # Divide multimodal cue values
+    mz[:, :, :-1] /= mz.shape[2] - 1
+
+    return mz
+
+
 def path_fidelity_fill(mz, d_map, path, path_fidelity):
     """
     Fill sensory cues into a single maze,
@@ -164,13 +195,21 @@ def path_fidelity_fill(mz, d_map, path, path_fidelity):
         if not any(np.equal(path, t).all(1)):
             off_path.append(t)
 
+    # remove all cues
     off_path = np.array(off_path)  # positions [r,c]
-    idx = np.random.rand(len(off_path)) <= path_fidelity
     mz[
-        off_path[idx, 0],
-        off_path[idx, 1],
-        np.random.choice([0, 1], size=sum(idx)),
+        off_path[:, 0],
+        off_path[:, 1],
+        :-1,
     ] = 0.0
+
+    # # set some cues to be unimodal (depending on path_fidelity)
+    # idx = np.random.rand(len(off_path)) <= path_fidelity
+    # mz[
+    #     off_path[idx, 0],
+    #     off_path[idx, 1],
+    #     np.random.choice([0, 1], size=sum(idx)),
+    # ] = 0.0
 
     # Halve multimodal cue values
     ms_r, ms_c = np.where((mz[:, :, 0] > 0) & (mz[:, :, 1] > 0))

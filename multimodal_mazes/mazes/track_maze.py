@@ -89,7 +89,7 @@ class TrackMaze(Maze):
             maze[r, c, :-1] += np.random.normal(
                 loc=0.0, scale=noise_scale, size=(len(r), (maze.shape[2] - 1))
             )
-            maze = np.clip(maze, a_min=0.0, a_max=1.0)
+            maze = np.clip(maze, a_min=0.0, a_max=None)
 
             # Gaps
             if gaps:
