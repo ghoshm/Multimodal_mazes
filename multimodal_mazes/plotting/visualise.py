@@ -178,11 +178,8 @@ def plot_architecture(genome, config, node_names):
         layers = [0]
 
     # Output nodes
-    offset = (
-        len(config.genome_config.input_keys) - len(config.genome_config.output_keys) - 1
-    ) * 0.1
     for k in config.genome_config.output_keys:
-        node_positions.update({k: ((max(layers) + 1) * 0.2, abs(k) * 0.1 + offset)})
+        node_positions.update({k: ((max(layers) + 1) * 0.2, abs(k) * 0.1 + 0.3)})
 
     # Plotting
     cmap = "PiYG"
@@ -199,14 +196,14 @@ def plot_architecture(genome, config, node_names):
     # Input nodes
     for k in config.genome_config.input_keys:
         if np.isin(k, nodes):
-            plt.text(-0.2, (abs(k) * 0.1) - 0.01, node_names[k], fontsize=15.0)
+            plt.text(-0.2, (abs(k) * 0.1) - 0.02, node_names[k], fontsize=15.0)
 
     # Output nodes
     for k in config.genome_config.output_keys:
         if np.isin(k, nodes):
             plt.text(
                 (max(layers) + 1) * 0.2 + 0.05,
-                (abs(k) * 0.1) - 0.01 + offset,
+                (abs(k) * 0.1) + 0.3 - 0.02,
                 node_names[k],
                 fontsize=15.0,
             )
