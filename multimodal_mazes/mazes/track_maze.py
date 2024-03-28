@@ -22,7 +22,7 @@ class TrackMaze(Maze):
         Arguments:
             number: of mazes to generate.
             noise_scale: scale of gaussian noise.
-            gaps: add sensory gaps or not [True, False].
+            gaps: length of the gap from 0 (no gap) onwards.
         Generates:
             mazes: see parent class.
             goal_locations: parent class.
@@ -92,11 +92,18 @@ class TrackMaze(Maze):
             maze = np.clip(maze, a_min=0.0, a_max=None)
 
             # Gaps
-            if gaps:
-                if goal_locations[n, 1] == 1:  # left
-                    maze[goal_locations[n, 0], goal_locations[n, 1] + 1, :2] = 0.0
-                else:
-                    maze[goal_locations[n, 0], goal_locations[n, 1] - 1, :2] = 0.0
+            if goal_locations[n, 1] == 1:  # left
+                maze[
+                    goal_locations[n, 0],
+                    goal_locations[n, 1] + 1 : goal_locations[n, 1] + (gaps + 1),
+                    :-1,
+                ] = 0.0
+            else:
+                maze[
+                    goal_locations[n, 0],
+                    goal_locations[n, 1] - gaps : goal_locations[n, 1],
+                    :-1,
+                ] = 0.0
 
             # Calculate distance map
             d_map = Maze.distance_map(mz=maze, exit=goal_locations[n])

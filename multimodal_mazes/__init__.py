@@ -22,6 +22,8 @@ from multimodal_mazes.plotting.visualise import (
 from multimodal_mazes.analysis.architecture_analysis import (
     prune_architecture,
     define_layers,
+    initial_architecture,
+    edit_distance,
     architecture_metrics,
     architecture_metrics_matrices,
 )

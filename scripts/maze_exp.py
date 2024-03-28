@@ -91,26 +91,26 @@ if __name__ == "__main__":
     shutil.copyfile("../neat_config.ini", exp_config["save_path"] + "/neat_config.ini")
     shutil.copyfile("../exp_config.ini", exp_config["save_path"] + "/exp_config.ini")
 
-    # # Track maze
-    # maze = multimodal_mazes.TrackMaze(
-    #     size=exp_config["maze_size"],
-    #     n_channels=len(exp_config["channels"]),
-    # )
-    # maze.generate(
-    #     number=exp_config["n_mazes"],
-    #     noise_scale=exp_config["maze_noise_scale"],
-    #     gaps=exp_config["maze_gaps"],
-    # )
-
-    # General maze
-    maze = multimodal_mazes.GeneralMaze(
+    # Track maze
+    maze = multimodal_mazes.TrackMaze(
         size=exp_config["maze_size"],
         n_channels=len(exp_config["channels"]),
     )
     maze.generate(
         number=exp_config["n_mazes"],
         noise_scale=exp_config["maze_noise_scale"],
+        gaps=exp_config["maze_gaps"],
     )
+
+    # # General maze
+    # maze = multimodal_mazes.GeneralMaze(
+    #     size=exp_config["maze_size"],
+    #     n_channels=len(exp_config["channels"]),
+    # )
+    # maze.generate(
+    #     number=exp_config["n_mazes"],
+    #     noise_scale=exp_config["maze_noise_scale"],
+    # )
 
     # Run
     agent_record, genome_record = [], []

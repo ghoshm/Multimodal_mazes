@@ -1,6 +1,7 @@
 # architecture analysis
 import numpy as np
 import networkx as nx
+import networkx.algorithms.isomorphism as iso
 import multimodal_mazes
 
 
@@ -98,6 +99,73 @@ def define_layers(genome, config):
     return np.array(h_nodes), np.array(layers)
 
 
+def initial_architecture(initial_connection):
+    """
+    Create a DiGraph with an inital architecture,
+        and uniform positive weights.
+    Arguments:
+        initial_connection: a string denoting the architecture to use.
+    Returns:
+        G: a nx.DiGraph with labelled nodes and weighted edges.
+    """
+    if initial_connection == "multimodal_half":
+        edges = [[-1, 0], [-3, 1], [-2, 0], [-4, 1]]
+    elif initial_connection == "multimodal":
+        edges = [[-1, 0], [-3, 1], [-5, 2], [-7, 3], [-2, 0], [-4, 1], [-6, 2], [-8, 3]]
+
+    nodes = np.unique(edges)
+
+    G = nx.DiGraph()
+    for e in edges:
+        G.add_edge(e[0], e[1], weight=1)
+
+    for n in nodes:
+        G.add_node(n, label=n)
+
+    # list(G.edges(data=True)) # useful syntax for debugging
+
+    return G
+
+
+def edit_distance(genome, config):
+    """
+    Compute the edit distance between a network,
+        and an inital architecture.
+        Note: uses only the sign of the weights.
+    Arguments:
+        genome: neat generated genome.
+        config: the neat configuration holder.
+    Returns:
+        edit_distance: the difference between the two.
+    """
+    # Define data
+    edges = []  # (source, target, weight)
+    for cg in genome.connections.values():
+        if cg.enabled:
+            source, target = cg.key
+            edges.append((source, target, cg.weight))
+    edges = np.array(edges)
+    nodes = np.unique(edges[:, :2])
+
+    # Define weighted graph
+    G = nx.DiGraph()
+    for e in edges:
+        G.add_edge(e[0], e[1], weight=-1 if e[2] < 0.0 else 1)
+
+    for n in nodes:
+        G.add_node(n, label=n)
+
+    # Edit distance
+    em = iso.numerical_edge_match("weight", 1)
+    nm = iso.numerical_node_match("label", 1)
+
+    # G_init = initial_architecture(config.genome_config.initial_connection)
+    G_init = initial_architecture("multimodal_half")
+    edit_distance = nx.graph_edit_distance(G, G_init, edge_match=em, node_match=nm)
+
+    return edit_distance
+
+
 def architecture_metrics(genome, config, channels):
     """
     Describes an architecture via several metrics, which
@@ -105,7 +173,7 @@ def architecture_metrics(genome, config, channels):
     Arguments:
         genome: neat generated genome.
         config: the neat configuration holder.
-        channels:
+        channels: list of active (1) and inative (0) channels e.g. [0,1].
     Returns:
         metrics_n: a dictionary of metrics with variable limits.
         metrics_p: a dictionary of metrics between 0 and 1.
@@ -131,7 +199,8 @@ def architecture_metrics(genome, config, channels):
             edges_bs: backwards skip edges.
             density: connections present.
             reciprocity: reciprocal connections (a-b-a)
-        transitivity: transitivity ().
+        transitivity: if a-b, a-c, then b-c?
+        square_clustering: if a-b, a-c, then b-d and c-d?
         edges_e_i: ratio of positive:negative weights.
         multi_uni_r: ratio of multimodal:unimodal units (hidden + output).
     """
@@ -203,7 +272,7 @@ def architecture_metrics(genome, config, channels):
     # Multimodal features
     n_channels = sum(channels)  # input channels
 
-    # Define graph
+    # Define unweighted graph
     G = nx.DiGraph()
     G.add_edges_from(list(edges[:, :2].astype(int)))
 
@@ -249,6 +318,12 @@ def architecture_metrics(genome, config, channels):
     # Transitivity
     transitivity = nx.transitivity(G)  # between 0 and 1
 
+    # Mean square clustering
+    square_clustering = nx.square_clustering(G)
+    square_clustering_mean = np.mean(
+        [square_clustering[n] for n in square_clustering.keys()]
+    )
+
     # Output
     metrics_n = {
         "$\mathregular{\eta}$": nodes_n,
@@ -270,7 +345,8 @@ def architecture_metrics(genome, config, channels):
         "$\mathregular{i_\iota j_{\iota-n}}$": edges_bs,
         "$\mathregular{D_{ensity}}$": density,
         "$\mathregular{R_{eciprocity}}$": reciprocity,
-        "$\mathregular{T_{ransitivity}}$": transitivity,
+        "$\mathregular{C_{3}(G)}$": transitivity,
+        "$\mathregular{C_{4}(G)}$": square_clustering_mean,
         "$\mathregular{E_{+}:E_{-}}$": edges_e_i,
         "$\mathregular{\eta_{multi}:\eta_{uni}}$": multi_uni_r,
     }
