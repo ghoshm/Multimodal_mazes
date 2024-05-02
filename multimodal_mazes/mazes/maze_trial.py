@@ -46,7 +46,6 @@ def maze_trial(
         )
     else:
         agnt.location = np.copy(mz_start_loc)
-        agnt.memory = np.zeros_like(agnt.outputs)
         agnt.sensor_noise_scale = sensor_noise_scale
 
     path = [list(agnt.location)]

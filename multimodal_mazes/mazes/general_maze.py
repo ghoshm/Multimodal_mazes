@@ -1,6 +1,7 @@
 # General maze
 import numpy as np
 from multimodal_mazes.mazes.maze_env import Maze
+from sklearn.metrics import DistanceMetric
 
 
 class GeneralMaze(Maze):
@@ -70,7 +71,15 @@ class GeneralMaze(Maze):
             )
 
             # Fill sensory cues
-            maze = distance_fill(mz=maze, d_map=d_map)
+            maze = shortest_path_fill(mz=maze, channels=[0], d_map=d_map)
+            # maze = random_fill(mz=maze, channels=[1])
+            # maze = shortest_path_fill(mz=maze, channels=[1], d_map=d_map)
+            maze = distance_fill(
+                mz=maze, channels=[1], exit=goal_loc, distance="chebyshev"
+            )
+
+            # Divide multimodal cue values
+            maze[:, :, :-1] /= maze.shape[2] - 1
 
             # Noise
             r, c = np.where(maze[:, :, -1])
@@ -136,26 +145,67 @@ def aldous_broder(size):
     return maze
 
 
-def distance_fill(mz, d_map):
+def shortest_path_fill(mz, channels, d_map):
     """
     Fill sensory cues into a single maze,
-        based on distance from exit.
+        using the shortest path to the exit.
     Arguments:
         mz: a np array of size x size x channels + 1.
             Where [:,:,-1] stores the maze structure.
+        channels: a list denoting which channels to fill.
         d_map: a np.array of size x size.
             Which stores each points distance from the exit.
     Returns:
-        mz: with the sensory cues filled in.
+        mz: with sensory cues filled into the chosen channels.
     """
 
-    # Set each positions sensory data depending on its distance from the exit
-    for ch in range(mz.shape[2] - 1):
+    # Set each positions sensory data
+    for ch in channels:
         mz[:, :, ch] = (d_map.max() - d_map) / d_map.max()
         mz[:, :, ch] *= mz[:, :, -1]
 
-    # Divide multimodal cue values
-    mz[:, :, :-1] /= mz.shape[2] - 1
+    return mz
+
+
+def random_fill(mz, channels):
+    """
+    Randomly fill sensory cues into a single maze.
+    Arguments:
+        mz: a np array of size x size x channels + 1.
+            Where [:,:,-1] stores the maze structure.
+        channels: a list denoting which channels to fill.
+    Returns:
+        mz: with sensory cues filled into the chosen channels.
+    """
+
+    # Set each positions sensory data
+    for ch in channels:
+        mz[:, :, ch] = np.random.rand(mz.shape[0], mz.shape[1])
+        mz[:, :, ch] *= mz[:, :, -1]
+
+    return mz
+
+
+def distance_fill(mz, channels, exit, distance):
+    """
+    Fill sensory cues into a single maze,
+        using the distance to the exit.
+    Arguments:
+        mz: a np array of size x size x channels + 1.
+            Where [:,:,-1] stores the maze structure.
+        channels: a list denoting which channels to fill.
+        exit: the maze exit [r, c].
+        distance: a metric implemented by sklearn.
+    Returns:
+        mz: with sensory cues filled into the chosen channels.
+    """
+    dist = DistanceMetric.get_metric(distance)
+    rc = np.argwhere(mz[:, :, -1] == 1)
+    rc_dist = dist.pairwise(rc.tolist(), [exit.tolist()]).reshape(-1)
+
+    # Set each positions sensory data
+    for ch in channels:
+        mz[rc[:, 0], rc[:, 1], ch] = (rc_dist.max() - rc_dist) / rc_dist.max()
 
     return mz
 

@@ -99,3 +99,46 @@ class Maze:
             path.append(list(agnt.location))
 
         return path
+
+    def generate_sensation_action_pairs(self, sensor_noise_scale):
+        """
+        Generate channel_input-action pairs for every position in each maze.
+        Arguments:
+            sensor_noise_scale: the scale of the noise applied to every sensor.
+        Creates:
+            channel_inputs: inputs from locations (sensors x channels x batch).
+            ci_actions: the correct action for each channel_input (np vector).
+        """
+        # Setup
+        channel_inputs, actions = [], []
+        agnt = Agent(location=None, channels=[1, 1])
+        agnt.sensor_noise_scale = sensor_noise_scale
+
+        # For each maze, and every position
+        for n in range(len(self.mazes)):
+            mz = self.mazes[n]
+            d_map_inv = (self.d_maps[n].max() - self.d_maps[n]) / self.d_maps[n].max()
+            d_map_inv = d_map_inv * mz[:, :, -1]
+
+            rcs = np.argwhere(mz[:, :, -1])
+            for _, rc in enumerate(rcs):
+                if (rc != self.goal_locations[n]).any():
+
+                    # Record channel data
+                    agnt.location = np.copy(rc)
+                    agnt.sense(mz)
+                    channel_inputs.append(np.copy(agnt.channel_inputs))
+
+                    # Record best action
+                    action_dists = d_map_inv[
+                        agnt.location[0] + agnt.actions[0],
+                        agnt.location[1] + agnt.actions[1],
+                    ]
+
+                    actions.append(np.argmax(action_dists))
+
+        # Store
+        self.channel_inputs = np.stack(
+            channel_inputs, axis=2
+        )  # (sensors x channels x batch)
+        self.ci_actions = np.array(actions)  # vector
