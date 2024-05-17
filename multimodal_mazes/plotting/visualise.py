@@ -280,3 +280,20 @@ def plot_robustness(
         genome = multimodal_mazes.prune_architecture(genome, config)
         multimodal_mazes.plot_architecture(genome, config, node_names=node_names)
         plt.ylim([0.05, 0.85])
+
+
+def unique_legend(ax, order, loc):
+    """
+    Adds a legend with only unique labels to a plot.
+    Arguments:
+        ax: the matplotlib axis to plot on.
+        order: a list with the desired legend order.
+        loc: a string specifying where to place the legend.
+    """
+    handles, labels = ax.get_legend_handles_labels()
+    unique = [
+        (h, l) for i, (h, l) in enumerate(zip(handles, labels)) if l not in labels[:i]
+    ]
+    if order is not None:
+        unique = [unique[i] for i in order]
+    ax.legend(*zip(*unique), frameon=False, loc=loc)

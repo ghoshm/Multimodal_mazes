@@ -14,17 +14,8 @@ def prune_architecture(genome, config):
     Returns:
         genome: the input genome with unused connections disabled.
     """
-    # Define nodes and edges
-    edges = []  # (source, target)
-    for cg in genome.connections.values():
-        if cg.enabled:
-            source, target = cg.key
-            edges.append((source, target))
-    nodes = np.unique(edges)
-
-    # Create graph
-    G = nx.DiGraph()
-    G.add_edges_from(edges)
+    # Define graph
+    G, nodes, edges = define_graph(genome, weights="None")
 
     # Determine which nodes lie on paths to outputs
     all_paths = []
@@ -65,17 +56,8 @@ def define_layers(genome, config):
     Note this is conceptually similar to a topological sort.
     Though allows for directed cycles.
     """
-    # Define nodes and edges
-    edges = []  # (source, target)
-    for cg in genome.connections.values():
-        if cg.enabled:
-            source, target = cg.key
-            edges.append((source, target))
-    nodes = np.unique(edges)
-
-    # Create graph
-    G = nx.DiGraph()
-    G.add_edges_from(edges)
+    # Define graph
+    G, nodes, edges = define_graph(genome, weights="None")
 
     # Define layers
     h_nodes, layers = [], []
@@ -138,19 +120,8 @@ def edit_distance(genome, config):
     Returns:
         edit_distance: the difference between the two.
     """
-    # Define data
-    edges = []  # (source, target, weight)
-    for cg in genome.connections.values():
-        if cg.enabled:
-            source, target = cg.key
-            edges.append((source, target, cg.weight))
-    edges = np.array(edges)
-    nodes = np.unique(edges[:, :2])
-
-    # Define weighted graph
-    G = nx.DiGraph()
-    for e in edges:
-        G.add_edge(e[0], e[1], weight=-1 if e[2] < 0.0 else 1)
+    # Define graph
+    G, nodes, edges = define_graph(genome, weights="Binary")
 
     for n in nodes:
         G.add_node(n, label=n)
@@ -159,8 +130,7 @@ def edit_distance(genome, config):
     em = iso.numerical_edge_match("weight", 1)
     nm = iso.numerical_node_match("label", 1)
 
-    # G_init = initial_architecture(config.genome_config.initial_connection)
-    G_init = initial_architecture("multimodal_half")
+    G_init = initial_architecture(config.genome_config.initial_connection)
     edit_distance = nx.graph_edit_distance(G, G_init, edge_match=em, node_match=nm)
 
     return edit_distance
@@ -205,14 +175,8 @@ def architecture_metrics(genome, config, channels):
         multi_uni_r: ratio of multimodal:unimodal units (hidden + output).
     """
 
-    # Define data
-    edges = []  # (source, target, weight)
-    for cg in genome.connections.values():
-        if cg.enabled:
-            source, target = cg.key
-            edges.append((source, target, cg.weight))
-    edges = np.array(edges)
-    nodes = np.unique(edges[:, :2])
+    # Define graph
+    G, nodes, edges = define_graph(genome, weights="None")
 
     # Node features
     nodes_n = len(nodes)  # number of nodes
@@ -271,10 +235,6 @@ def architecture_metrics(genome, config, channels):
 
     # Multimodal features
     n_channels = sum(channels)  # input channels
-
-    # Define unweighted graph
-    G = nx.DiGraph()
-    G.add_edges_from(list(edges[:, :2].astype(int)))
 
     # Define variables
     input_channels = np.ones(len(config.genome_config.input_keys), dtype=int)
@@ -384,3 +344,42 @@ def architecture_metrics_matrices(agents, genomes, config):
         metrics_n.keys(),
         metrics_p.keys(),
     )
+
+
+def define_graph(genome, weights):
+    """
+    Create a networkx graph from a genome,
+        with either no or binary (-1/+1) weights.
+    Arguments:
+        genome: neat generated genome.
+        weights: a string of:
+            None: unweighted graph.
+            Binary: weighted with (-1/+1).
+    Returns:
+        G: a networkx graph.
+        nodes: a np vector of unique nodes.
+        edges: a np array of edges n(source, target, weight).
+    """
+
+    # Define nodes and edges
+    edges = []  # (source, target, weight)
+    for cg in genome.connections.values():
+        if cg.enabled:
+            source, target = cg.key
+            edges.append((source, target, cg.weight))
+    edges = np.array(edges)
+    nodes = np.unique(edges[:, :2])
+
+    # Define graph
+    G = nx.DiGraph()
+
+    if weights == "None":
+        G.add_edges_from(list(edges[:, :2].astype(int)))
+    elif weights == "Binary":
+        for e in edges:
+            G.add_edge(e[0], e[1], weight=-1 if e[2] < 0.0 else 1)
+
+    for n in nodes:
+        G.add_node(n, label=n)
+
+    return G, nodes, edges

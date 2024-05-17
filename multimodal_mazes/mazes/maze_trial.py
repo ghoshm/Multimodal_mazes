@@ -47,6 +47,9 @@ def maze_trial(
     else:
         agnt.location = np.copy(mz_start_loc)
         agnt.sensor_noise_scale = sensor_noise_scale
+        agnt.outputs *= 0.0
+        if agnt.type == "Hidden skip":
+            agnt.memory = np.zeros_like(agnt.outputs)
 
     path = [list(agnt.location)]
     # Sensation-action loop

@@ -87,7 +87,11 @@ def robustness_to_sensor_noise(
     maze = multimodal_mazes.TrackMaze(
         size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
     )
-    maze.generate(number=n_mazes, noise_scale=exp_config["maze_noise_scale"])
+    maze.generate(
+        number=n_mazes,
+        noise_scale=exp_config["maze_noise_scale"],
+        gaps=exp_config["maze_gaps"],
+    )
 
     for a, noise_scale in enumerate(tqdm(noise_scales)):
         agnt_random_baseline = multimodal_mazes.AgentRandom(
@@ -146,7 +150,11 @@ def robustness_to_drop_connect(
     maze = multimodal_mazes.TrackMaze(
         size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
     )
-    maze.generate(number=n_mazes, noise_scale=exp_config["maze_noise_scale"])
+    maze.generate(
+        number=n_mazes,
+        noise_scale=exp_config["maze_noise_scale"],
+        gaps=exp_config["maze_gaps"],
+    )
 
     for a, drop_connect_p in enumerate(tqdm(drop_connect_ps)):
         agnt_random_baseline = multimodal_mazes.AgentRandom(
