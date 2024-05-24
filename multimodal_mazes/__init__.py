@@ -35,3 +35,7 @@ from multimodal_mazes.analysis.robustness import (
     robustness_to_sensor_noise,
     robustness_to_drop_connect,
 )
+from multimodal_mazes.predator_prey.predator_trial import (
+    predator_trial,
+    eval_predator_fitness,
+)
