@@ -41,6 +41,8 @@ class AgentRuleBasedMemory(Agent):
         Assign a value to each action based on a policy.
         """
 
+        # self.channel_inputs *= np.array([1, 1, 0, 0])[:, None] # uncomment to limit solutions to only L and R sensors.
+
         # Implement policy
         if self.type == "Recurrent outputs":
 
