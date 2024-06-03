@@ -1,6 +1,7 @@
 # Rule-based agent
 
 import numpy as np
+from matplotlib import cm
 from multimodal_mazes.agents.agent import Agent
 
 
@@ -16,6 +17,8 @@ class AgentRuleBased(Agent):
         "Linear fusion",  # multimodal
         "Nonlinear fusion",  # multimodal
     ]
+
+    colors = cm.get_cmap("plasma", len(policies)).colors.tolist()
 
     def __init__(self, location, channels, policy):
         super().__init__(location, channels)
@@ -69,6 +72,10 @@ class AgentRuleBased(Agent):
 
         # Apply channel weights
         self.channel_inputs *= self.channel_weights
+
+        # self.channel_inputs *= np.array([1, 1, 0, 0])[
+        #     :, None
+        # ]  # uncomment to limit solutions to only L and R sensors.
 
         # Implement policy
         if self.type == "Max-dv":

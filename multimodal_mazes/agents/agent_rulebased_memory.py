@@ -8,6 +8,8 @@ class AgentRuleBasedMemory(Agent):
 
     policies = ["Recurrent outputs", "Hidden skip"]
 
+    colors = [[0.039, 0.73, 0.71, 1], [0.57, 0.58, 0.57, 1]]
+
     def __init__(self, location, channels, policy):
         super().__init__(location, channels)
 
