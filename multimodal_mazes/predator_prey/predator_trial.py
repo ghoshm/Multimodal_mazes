@@ -13,6 +13,7 @@ def predator_trial(
     pk,
     n_steps,
     scenario,
+    motion,
     pm=None,
     pe=None,
 ):
@@ -26,6 +27,7 @@ def predator_trial(
         pk: the width of the prey's Gaussian signal (in rc).
         n_steps: the number of steps the simulation lasts.
         scenario: defines the task as either foraging or hunting.
+        motion: the type of motion used by the prey, either Brownian or Levy.
         pm: the probability of prey moving (per timestep) when hunting.
         pe: the probability of prey emitting cues (per timestep) when hunting.
     Returns:
@@ -48,6 +50,9 @@ def predator_trial(
     agnt.outputs *= 0.0
     if agnt.type == "Hidden skip":
         agnt.memory = np.zeros_like(agnt.outputs)
+    elif agnt.type == "Levy":
+        agnt.flight_length = 0
+        agnt.collision = 0
 
     # Define prey
     k1d = signal.gaussian(pk, std=1)
@@ -59,7 +64,9 @@ def predator_trial(
     preys = []
     for n in range(n_prey):
         preys.append(
-            multimodal_mazes.AgentRandom(location=rcs[prey_rcs[n]], channels=[0, 0])
+            multimodal_mazes.AgentRandom(
+                location=rcs[prey_rcs[n]], channels=[0, 0], motion=motion
+            )
         )
         preys[n].state = 1  # free (1) or caught (0)
         preys[n].path = [list(preys[n].location)]
@@ -150,6 +157,7 @@ def eval_predator_fitness(
     pk,
     n_steps,
     scenario,
+    motion,
     pm=None,
     pe=None,
 ):
@@ -164,6 +172,7 @@ def eval_predator_fitness(
         pk: the width of the prey's Gaussian signal (in rc).
         n_steps: the number of steps the simulation lasts.
         scenario: defines the task as either foraging or hunting.
+        motion: the type of motion used by the prey, either Brownian or Levy.
         pm: the probability of prey moving (per timestep) when hunting.
         pe: the probability of prey emitting cues (per timestep) when hunting.
     Returns:
@@ -185,6 +194,7 @@ def eval_predator_fitness(
             pk=pk,
             n_steps=n_steps,
             scenario=scenario,
+            motion=motion,
             pm=pm,
             pe=pe,
         )

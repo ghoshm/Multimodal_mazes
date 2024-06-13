@@ -18,6 +18,7 @@ class Agent:
             outputs: the policy assigned value for each action.
             type: a string denoting the type of agent.
             sensor_noise_scale: the scale of the noise applied to every sensor.
+            collision: if the last action collided with a wall (1) or not (0).
         """
         self.location = np.array(location)
         self.channels = np.array(channels)
@@ -28,6 +29,7 @@ class Agent:
         self.outputs = np.zeros(len(self.actions[0]))
         self.type = []
         self.sensor_noise_scale = 0.0
+        self.collision = 0
 
     def sense(self, env):
         """
@@ -76,3 +78,7 @@ class Agent:
             == 1.0
         ):
             self.location += [self.actions[0][action], self.actions[1][action]]
+            self.collision = 0
+
+        else:
+            self.collision = 1
