@@ -16,6 +16,7 @@ def predator_trial(
     motion,
     pm=None,
     pe=None,
+    log_env=False,
 ):
     """
     Tests a single agent on a single predator trial.
@@ -30,12 +31,14 @@ def predator_trial(
         motion: the type of motion used by the prey, either Brownian or Levy.
         pm: the probability of prey moving (per timestep) when hunting.
         pe: the probability of prey emitting cues (per timestep) when hunting.
+        log_env: record the env state (True) or not (False).
     Returns:
         time: the number of steps taken to catch all prey.
               Returns n_steps-1 if the agent fails.
         path: a np array with the agent's location at each time step [r,c].
         prey state: a list with the final state (0 or 1, caught or free) of each prey.
         preys: a list containing the prey agents.
+        env_log: a list storing the env at every step.
     """
     pk_hw = pk // 2  # half width of prey's Gaussian signal (in rc)
 
@@ -43,6 +46,7 @@ def predator_trial(
     env = np.zeros((size, size, len(agnt.channels) + 1))
     env[:, :, -1] = 1.0
     env = np.pad(env, pad_width=((pk_hw, pk_hw), (pk_hw, pk_hw), (0, 0)))
+    env_log = [np.copy(env)]
 
     # Reset agent
     agnt.location = np.array([pk_hw + (size // 2), pk_hw + (size // 2)])
@@ -133,6 +137,10 @@ def predator_trial(
         if prey_counter == 0:
             break
 
+        # Log env
+        if log_env:
+            env_log.append(np.copy(env))
+
         # Predator
         agnt.sense(env)
         agnt.policy()
@@ -145,6 +153,7 @@ def predator_trial(
         np.array(path),
         [preys[n].state for n in range(n_prey)],
         preys,
+        env_log,
     )
 
 
