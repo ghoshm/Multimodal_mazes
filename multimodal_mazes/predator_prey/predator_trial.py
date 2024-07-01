@@ -61,7 +61,7 @@ def predator_trial(
         agnt.collision = 0
 
     # Define prey
-    k1d = signal.gaussian(pk, std=1)
+    k1d = signal.windows.gaussian(pk, std=1)
     k2d = np.outer(k1d, k1d)
     k2d_noise = np.copy(k2d)
 

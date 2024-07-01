@@ -3,7 +3,10 @@ __pycache__/
 
 # Results 
 Results/
+results/
 
 # Egg info
 multimodal_mazes.egg-info/
 
+# HPC Files
+HPC_job.pbs*
