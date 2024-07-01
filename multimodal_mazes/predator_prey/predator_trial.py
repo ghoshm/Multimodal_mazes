@@ -14,6 +14,7 @@ def predator_trial(
     n_steps,
     scenario,
     motion,
+    pc,
     pm=None,
     pe=None,
     log_env=False,
@@ -29,6 +30,7 @@ def predator_trial(
         n_steps: the number of steps the simulation lasts.
         scenario: defines the task as either foraging or hunting.
         motion: the type of motion used by the prey, either Brownian or Levy.
+        pc: the persistence of cues in the environment from 0 to 1 (instantaneous to constant).
         pm: the probability of prey moving (per timestep) when hunting.
         pe: the probability of prey emitting cues (per timestep) when hunting.
         log_env: record the env state (True) or not (False).
@@ -83,7 +85,7 @@ def predator_trial(
     prey_counter = np.copy(n_prey)
     for time in range(n_steps):
 
-        env[:, :, :-1] *= 0.0  # reset channels
+        env[:, :, :-1] *= pc  # reset channels
 
         # Prey
         for prey in preys:
@@ -167,6 +169,7 @@ def eval_predator_fitness(
     n_steps,
     scenario,
     motion,
+    pc,
     pm=None,
     pe=None,
 ):
@@ -182,6 +185,7 @@ def eval_predator_fitness(
         n_steps: the number of steps the simulation lasts.
         scenario: defines the task as either foraging or hunting.
         motion: the type of motion used by the prey, either Brownian or Levy.
+        pc: the persistence of cues in the environment from 0 to 1 (instantaneous to constant).
         pm: the probability of prey moving (per timestep) when hunting.
         pe: the probability of prey emitting cues (per timestep) when hunting.
     Returns:
@@ -195,7 +199,7 @@ def eval_predator_fitness(
     # For each trial
     for _ in range(n_trials):
         # Run trial
-        time, path, prey_state, prey = predator_trial(
+        time, path, prey_state, prey, _ = predator_trial(
             size=size,
             agnt=agnt,
             sensor_noise_scale=sensor_noise_scale,
@@ -204,6 +208,7 @@ def eval_predator_fitness(
             n_steps=n_steps,
             scenario=scenario,
             motion=motion,
+            pc=pc,
             pm=pm,
             pe=pe,
         )
@@ -221,3 +226,87 @@ def eval_predator_fitness(
         paths,
         preys,
     )
+
+
+def prey_params_search(
+    grid_size, size, n_prey, n_steps, n_trials, pk, scenario, motion
+):
+    """
+    Tests rule-based agents over a grid of task parameters.
+    Arguments:
+        grid_size: the number of values to test per parameter.
+        size: the size of the square environment.
+        n_prey: the number of prey which start in the environment.
+        n_steps: the number of steps the simulation lasts.
+        n_trials: the number of trials to run.
+        pk: the width of the prey's Gaussian signal (in rc).
+        scenario: defines the task as either foraging or hunting.
+        motion: the type of motion used by the prey, either Brownian or Levy.
+    Returns:
+        results: a np array with the fitness results (noises, policies, pms, pes).
+        parameters: a dictionary which stores the tested parameters and policies.
+    """
+
+    # Set up
+    noises = np.linspace(start=0.0, stop=2.0, num=grid_size)
+    policies = (
+        multimodal_mazes.AgentRuleBased.policies
+        + multimodal_mazes.AgentRuleBasedMemory.policies
+        + ["Levy"]
+    )
+    colors = (
+        multimodal_mazes.AgentRuleBased.colors
+        + multimodal_mazes.AgentRuleBasedMemory.colors
+        + [list(np.array([24, 156, 196, 255]) / 255)]
+    )
+    pms = np.linspace(start=0.0, stop=1.0, num=grid_size)
+    pes = np.linspace(start=0.0, stop=1.0, num=grid_size)
+
+    results = np.zeros((len(noises), len(policies), len(pms), len(pes)))
+
+    # Test agents
+    for a, noise in enumerate(noises):
+
+        for b, policy in enumerate(policies):
+            if policy in multimodal_mazes.AgentRuleBased.policies:
+                agnt = multimodal_mazes.AgentRuleBased(
+                    location=None, channels=[1, 1], policy=policy
+                )
+            elif policy in multimodal_mazes.AgentRuleBasedMemory.policies:
+                agnt = multimodal_mazes.AgentRuleBasedMemory(
+                    location=None, channels=[1, 1], policy=policy
+                )
+                agnt.alpha = 0.6
+            elif policy == "Levy":
+                agnt = multimodal_mazes.AgentRandom(
+                    location=None, channels=[0, 0], motion=policy
+                )
+
+            for c, pm in enumerate(pms):
+                for d, pe in enumerate(pes):
+                    fitness, _, _, _ = multimodal_mazes.eval_predator_fitness(
+                        n_trials=n_trials,
+                        size=size,
+                        agnt=agnt,
+                        sensor_noise_scale=noise,
+                        n_prey=n_prey,
+                        pk=pk,
+                        n_steps=n_steps,
+                        scenario=scenario,
+                        motion=motion,
+                        pc=0.0,  # PLACE HOLDER
+                        pm=pm,
+                        pe=pe,
+                    )
+
+                    results[a, b, c, d] = fitness
+
+    parameters = {
+        "noises": noises,
+        "policies": policies,
+        "colors": colors,
+        "pms": pms,
+        "pes": pes,
+    }
+
+    return results, parameters

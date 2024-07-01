@@ -8,7 +8,10 @@ from multimodal_mazes.mazes.maze_env import Maze
 from multimodal_mazes.mazes.track_maze import TrackMaze
 from multimodal_mazes.mazes.h_maze import HMaze
 from multimodal_mazes.mazes.general_maze import GeneralMaze
-from multimodal_mazes.misc import load_exp_config
+from multimodal_mazes.misc import (
+    load_exp_config,
+    load_search_config,
+)
 from multimodal_mazes.mazes.maze_trial import (
     maze_trial,
     eval_fitness,
@@ -38,4 +41,5 @@ from multimodal_mazes.analysis.robustness import (
 from multimodal_mazes.predator_prey.predator_trial import (
     predator_trial,
     eval_predator_fitness,
+    prey_params_search,
 )
