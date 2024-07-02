@@ -261,8 +261,9 @@ def prey_params_search(
     )
     pms = np.linspace(start=0.0, stop=1.0, num=grid_size)
     pes = np.linspace(start=0.0, stop=1.0, num=grid_size)
+    pcs = np.linspace(start=0.0, stop=1.0, num=grid_size)
 
-    results = np.zeros((len(noises), len(policies), len(pms), len(pes)))
+    results = np.zeros((len(noises), len(policies), len(pms), len(pes), len(pcs)))
 
     # Test agents
     for a, noise in enumerate(noises):
@@ -284,22 +285,23 @@ def prey_params_search(
 
             for c, pm in enumerate(pms):
                 for d, pe in enumerate(pes):
-                    fitness, _, _, _ = multimodal_mazes.eval_predator_fitness(
-                        n_trials=n_trials,
-                        size=size,
-                        agnt=agnt,
-                        sensor_noise_scale=noise,
-                        n_prey=n_prey,
-                        pk=pk,
-                        n_steps=n_steps,
-                        scenario=scenario,
-                        motion=motion,
-                        pc=0.0,  # PLACE HOLDER
-                        pm=pm,
-                        pe=pe,
-                    )
+                    for e, pc in enumerate(pcs):
+                        fitness, _, _, _ = multimodal_mazes.eval_predator_fitness(
+                            n_trials=n_trials,
+                            size=size,
+                            agnt=agnt,
+                            sensor_noise_scale=noise,
+                            n_prey=n_prey,
+                            pk=pk,
+                            n_steps=n_steps,
+                            scenario=scenario,
+                            motion=motion,
+                            pc=pc,
+                            pm=pm,
+                            pe=pe,
+                        )
 
-                    results[a, b, c, d] = fitness
+                        results[a, b, c, d, e] = fitness
 
     parameters = {
         "noises": noises,
@@ -307,6 +309,7 @@ def prey_params_search(
         "colors": colors,
         "pms": pms,
         "pes": pes,
+        "pcs": pcs,
     }
 
     return results, parameters
