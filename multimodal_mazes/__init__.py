@@ -4,6 +4,7 @@ from multimodal_mazes.agents.agent_regress import AgentRegress
 from multimodal_mazes.agents.agent_random import AgentRandom
 from multimodal_mazes.agents.agent_rulebased import AgentRuleBased
 from multimodal_mazes.agents.agent_rulebased_memory import AgentRuleBasedMemory
+from multimodal_mazes.agents.prey_linear import PreyLinear
 from multimodal_mazes.mazes.maze_env import Maze
 from multimodal_mazes.mazes.track_maze import TrackMaze
 from multimodal_mazes.mazes.h_maze import HMaze
@@ -42,4 +43,9 @@ from multimodal_mazes.predator_prey.predator_trial import (
     predator_trial,
     eval_predator_fitness,
     prey_params_search,
+)
+from multimodal_mazes.predator_prey.linear_prey_trial import(
+    linear_prey_trial,
+    eval_linear_prey_fitness,
+    linear_prey_params_search,
 )

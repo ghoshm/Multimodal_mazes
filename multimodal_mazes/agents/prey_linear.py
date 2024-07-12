@@ -3,23 +3,32 @@
 import numpy as np
 
 class PreyLinear():
-    def __init__(self, location, channels, motion, direction):
+    def __init__(self, location, channels, scenario, motion, direction):
         
         self.location = np.array(location)
         self.channels = np.array(channels)
-        self.type = motion
+        self.type = scenario
         self.collision = 0
         self.direction = direction
+        self.motion = motion
+
+        if self.motion == "Levy":
+            self.flight_length = 0  # length of current flight
+            self.flight_lengths = np.arange(1, 8)  # possible flight lengths
+            self.flight_pl = self.flight_lengths.astype(float) ** -2
+            self.flight_pl /= np.sum(self.flight_pl)  # p of each flight length
         
         """
         Creates a linear prey for linear prey tasks. 
         Arguments:
             location: initial position [r,c].
             channels: list of active (1) and inative (0) channels e.g. [0,1].
-            motion: either linear or ...
-            direction: the direction the prey moves
+            scenario: Either "Static", "Constant" or "Random".
+            motion: "Linear", "Disappearing", "Brownian" or "Levy".
+            direction: the direction of prey movement.
         Properties:
-            
+
+  
         """                
         
     def move(self, env):
@@ -34,8 +43,20 @@ class PreyLinear():
         """
 
         # Act (if the action does not collide with a wall)
-        if self.type == 'Linear':
+        if self.type != "Static":
+            possible_directions = [-1, 1]
             
+            if self.motion == "Brownian":
+                self.direction = possible_directions[np.random.choice(range(2))]
+
+            elif self.motion == "Levy" and self.flight_length == 0:
+                self.flight_length = np.random.choice(
+                    a=self.flight_lengths,
+                    p=self.flight_pl,
+                )
+                self.direction = possible_directions[np.random.choice(range(2))]
+            
+ 
             if ( 
                 env[
                     self.location[0],
@@ -46,6 +67,9 @@ class PreyLinear():
             ):
                 self.location += [0, self.direction]
                 self.collision = 0
+
+                if self.motion == "Levy":
+                    self.flight_length -= 1
 
             else:
                 self.collision = 1

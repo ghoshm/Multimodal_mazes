@@ -13,10 +13,7 @@ def linear_prey_trial(
     pk,
     n_steps,
     scenario,
-    case,
     motion,
-    visible_steps,
-    multisensory,
     pc,
     pm=None,
     pe=None,
@@ -33,10 +30,7 @@ def linear_prey_trial(
         pk: the width of the prey's Gaussian signal (in rc).
         n_steps: the number of steps the simulation lasts.
         scenario: defines the task as either foraging or hunting.
-        case: determines the start position of the prey, cand be 1, 2, 3.
         motion: the type of motion used by the prey, linear or None.
-        visible_stpes: the number of time steps for which the prey should be visible to the agent.
-        multisensory: determines whether additional cues will be emitted.
         pc: the persistence of cues in the environment from 0 to 1 (instantaneous to constant).
         pm: the probability of prey moving (per timestep) when hunting.
         pe: the probability of prey emitting cues (per timestep) when hunting.
@@ -77,42 +71,21 @@ def linear_prey_trial(
     preys = []
     directions = [-1, 1]
     direction = 0
-
-    if scenario != "Static":
-        if case == "1":
-            start_rc = [pk_hw, pk_hw+width//2]
-            choice = np.random.choice(range(2))
-            direction = directions[choice]
-        elif case == "2":
-            possible_starts = [[pk_hw, width+pk_hw-1], [pk_hw, pk_hw]]
-            choice = np.random.choice(range(2))
-            start_rc = possible_starts[choice]
-            direction = directions[choice]
-        elif case == "3":
-            possible_starts = [[pk_hw, pk_hw+(width//4)], [pk_hw, pk_hw+((3*width)//4)]]
-            choice = np.random.choice(range(2))
-            start_rc = possible_starts[choice]
-            direction = directions[choice]
-    
     
     for n in range(n_prey):
-        if scenario == "Static":
-            preys.append(
-                multimodal_mazes.PreyLinear(
-                    location=rcs[prey_rcs[n]], channels=[0, 0], scenario=scenario, motion=motion, direction=direction
-                )
+        
+        if scenario == "Constant":
+            direction = directions[np.random.choice(range(2))]
+        preys.append(
+            multimodal_mazes.PreyLinear(
+                location=rcs[prey_rcs[n]], channels=[0, 0], motion=motion, direction=direction
             )
-        elif scenario != "Static":
-            preys.append(
-                multimodal_mazes.PreyLinear(
-                    location=start_rc, channels=[0, 0], scenario=scenario, motion=motion, direction=direction
-                )
-            )
+        )
         preys[n].state = 1  # free (1) or caught (0)
         preys[n].path = [list(preys[n].location)]
 
         # if scenario == "Static":
-        preys[n].cues = (n % 2, ((n+1) % 2))  # channel for emitting cues from prey specific and very diffuse
+        preys[n].cues = n % 2  # channel for emitting cues
     
     # Sensation-action loop
     path = [list(agnt.location)]
@@ -131,8 +104,8 @@ def linear_prey_trial(
 
                 else:  # free
                     # Movement
-
-                    if scenario != "Static" and np.random.rand() < pm:
+                    
+                    if scenario == "Constant":
                         prey.move(env)
                         
                     if prey.collision == 1:  # trial failed
@@ -147,81 +120,34 @@ def linear_prey_trial(
                             env[
                                 r - pk_hw : r + pk_hw + 1,
                                 c - pk_hw : c + pk_hw + 1,
-                                prey.cues[0],
+                                prey.cues,
                             ] += np.copy(k2d)
 
-                        elif scenario != "Static":
-                            if motion != "Disappearing":
-                                env[
-                                    r - pk_hw : r + pk_hw + 1,
-                                    c - pk_hw : c + pk_hw + 1,
-                                    prey.cues[0],
-                                ] += np.copy(k2d)
-                            elif motion == "Disappearing" and time <= visible_steps:
-                                env[
-                                    r - pk_hw : r + pk_hw + 1,
-                                    c - pk_hw : c + pk_hw + 1,
-                                    prey.cues[0],
-                                ] += np.copy(k2d)
-                        
-                        #emit environment cue
-                        # General environment cue
-                        #ek1d = signal.windows.gaussian(pk, std=1)
-                        # ek1d = signal.windows.boxcar(width//2 + 1)
-                        # ek2d = np.outer(ek1d, ek1d)
+                        elif scenario == "Constant":
+                            env[
+                                r - pk_hw : r + pk_hw + 1,
+                                c - pk_hw : c + pk_hw + 1,
+                                prey.cues,
+                            ] += np.copy(k2d)
 
-                        # env[
-                        #     height - 1 - pk_hw : height + pk_hw + 1,
-                        #     (width//2) - pk_hw - 1 : (width//2) + pk_hw + 1,
-                        #     1,
-                        # ] += np.copy(ek2d)         
-            if multisensory == "Broad":
-            #Define dimensions of broad cue
-                ek1dc = signal.windows.boxcar(3*width//4 + 1)
-                ek1dr = signal.windows.boxcar(height)
-                ek2d = np.outer(ek1dr, ek1dc)
-
-                #Emit broad cue
-                cue_top = max(0, height - 1 - height // 2)
-                cue_bottom = min(height + height // 2, env.shape[0])
-                cue_left = max(0, prey.location[1] - (3 * width // 8))
-                cue_right = min(prey.location[1] + (3 * width // 8) + 1, env.shape[1])
-
-                if motion != "Disappearing":
-                    env[
-                        cue_top:cue_bottom,
-                        cue_left:cue_right,
-                        prey.cues[1],
-                    ] += ek2d[:cue_bottom - cue_top, :cue_right - cue_left]
-                elif motion == "Disappearing" and time <= visible_steps:
-                    env[
-                        cue_top:cue_bottom,
-                        cue_left:cue_right,
-                        prey.cues[1],
-                    ] += ek2d[:cue_bottom - cue_top, :cue_right - cue_left]
-            
-                        
-                        #k2d_noise = np.copy(k2d)
-                            
-
-                            # for ch in range(len(prey.channels)):
-                                # if np.random.rand() < pe:
-                                #     env[
-                                #         r - pk_hw : r + pk_hw + 1,
-                                #         c - pk_hw : c + pk_hw + 1,
-                                #         prey.cues,
-                                #     ] += np.copy(
-                                #         k2d
-                                #     )  # emit cues
-                                # else:
-                                #     np.random.shuffle(k2d_noise.reshape(-1))
-                                #     env[
-                                #         r - pk_hw : r + pk_hw + 1,
-                                #         c - pk_hw : c + pk_hw + 1,
-                                #         ch,
-                                #     ] += np.copy(
-                                #         k2d_noise
-                                #     )  # emit noise
+                        # for ch in range(len(prey.channels)):
+                        #     if np.random.rand() < pe:
+                        #         env[
+                        #             r - pk_hw : r + pk_hw + 1,
+                        #             c - pk_hw : c + pk_hw + 1,
+                        #             ch,
+                        #         ] += np.copy(
+                        #             k2d
+                        #         )  # emit cues
+                        #     else:
+                        #         np.random.shuffle(k2d_noise.reshape(-1))
+                        #         env[
+                        #             r - pk_hw : r + pk_hw + 1,
+                        #             c - pk_hw : c + pk_hw + 1,
+                        #             ch,
+                        #         ] += np.copy(
+                        #             k2d_noise
+                        #         )  # emit noise
 
         # Apply edges
         for ch in range(len(agnt.channels)):
@@ -261,10 +187,7 @@ def eval_linear_prey_fitness(
     pk,
     n_steps,
     scenario,
-    case,
     motion,
-    visible_steps,
-    multisensory,
     pc,
     pm=None,
     pe=None,
@@ -280,10 +203,7 @@ def eval_linear_prey_fitness(
         pk: the width of the prey's Gaussian signal (in rc).
         n_steps: the number of steps the simulation lasts.
         scenario: defines the task as either foraging or hunting.
-        case: determines the start position of the prey, cand be 1, 2, 3.
-        motion: the type of motion used by the prey, linear or None.
-        visible_stpes: the number of time steps for which the prey should be visible to the agent.
-        multisensory: determines whether additional cues will be emitted.
+        motion: the type of motion used by the prey, either Linear or ...
         pc: the persistence of cues in the environment from 0 to 1 (instantaneous to constant).
         pm: the probability of prey moving (per timestep) when hunting.
         pe: the probability of prey emitting cues (per timestep) when hunting.
@@ -307,10 +227,7 @@ def eval_linear_prey_fitness(
             pk=pk,
             n_steps=n_steps,
             scenario=scenario,
-            case=case,
             motion=motion,
-            visible_steps=visible_steps,
-            multisensory=multisensory,
             pc=pc,
             pm=pm,
             pe=pe,

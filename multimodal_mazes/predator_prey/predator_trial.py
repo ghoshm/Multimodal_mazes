@@ -68,6 +68,7 @@ def predator_trial(
     rcs = np.stack(np.argwhere(env[:, :, -1]))
     prey_rcs = np.random.choice(range(len(rcs)), size=n_prey, replace=False)
     preys = []
+    
     for n in range(n_prey):
         preys.append(
             multimodal_mazes.AgentRandom(

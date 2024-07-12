@@ -10,3 +10,6 @@ multimodal_mazes.egg-info/
 
 # HPC Files
 HPC_job.pbs*
+
+# GIFs
+*.gif
