@@ -75,3 +75,51 @@ def load_search_config(path):
     }
 
     return search_config_dict
+
+
+def load_prey_config(path):
+    """
+    Reads the prey config file into a dictionary.
+    Arguments:
+        A path to a prey_config.ini file.
+    Returns:
+        A dictionary of hyperparameters.
+    """
+    prey_config = configparser.ConfigParser()
+    prey_config.read(path)
+
+    save_path = prey_config["DEFAULT"]["save_path"]
+    n_generations = int(prey_config["DEFAULT"]["n_generations"])
+    n_trials = int(prey_config["DEFAULT"]["n_trials"])
+    size = int(prey_config["DEFAULT"]["size"])
+    sensor_noise_scale = float(prey_config["DEFAULT"]["sensor_noise_scale"])
+    n_prey = int(prey_config["DEFAULT"]["n_prey"])
+    pk = int(prey_config["DEFAULT"]["pk"])
+    n_steps = int(prey_config["DEFAULT"]["n_steps"])
+    scenario = prey_config["DEFAULT"]["scenario"]
+    motion = prey_config["DEFAULT"]["motion"]
+    pc = float(prey_config["DEFAULT"]["pc"])
+    pm = float(prey_config["DEFAULT"]["pm"])
+    pe = float(prey_config["DEFAULT"]["pe"])
+    channels = list(map(int, (prey_config["DEFAULT"]["channels"]).split(",")))
+    drop_connect_p = float(prey_config["DEFAULT"]["drop_connect_p"])
+
+    prey_config_dict = {
+        "save_path": save_path,
+        "n_generations": n_generations,
+        "n_trials": n_trials,
+        "size": size,
+        "sensor_noise_scale": sensor_noise_scale,
+        "n_prey": n_prey,
+        "pk": pk,
+        "n_steps": n_steps,
+        "scenario": scenario,
+        "motion": motion,
+        "pc": pc,
+        "pm": pm,
+        "pe": pe,
+        "channels": channels,
+        "drop_connect_p": drop_connect_p,
+    }
+
+    return prey_config_dict

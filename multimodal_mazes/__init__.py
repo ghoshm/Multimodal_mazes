@@ -11,6 +11,7 @@ from multimodal_mazes.mazes.general_maze import GeneralMaze
 from multimodal_mazes.misc import (
     load_exp_config,
     load_search_config,
+    load_prey_config,
 )
 from multimodal_mazes.mazes.maze_trial import (
     maze_trial,

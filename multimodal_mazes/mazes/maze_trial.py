@@ -50,6 +50,9 @@ def maze_trial(
         agnt.outputs *= 0.0
         if agnt.type == "Hidden skip":
             agnt.memory = np.zeros_like(agnt.outputs)
+        elif agnt.type == "Levy":
+            agnt.flight_length = 0
+            agnt.collision = 0
 
     path = [list(agnt.location)]
     # Sensation-action loop

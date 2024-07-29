@@ -18,6 +18,10 @@ def predator_trial(
     pm=None,
     pe=None,
     log_env=False,
+    channels=None,
+    drop_connect_p=None,
+    genome=None,
+    config=None,
 ):
     """
     Tests a single agent on a single predator trial.
@@ -34,6 +38,10 @@ def predator_trial(
         pm: the probability of prey moving (per timestep) when hunting.
         pe: the probability of prey emitting cues (per timestep) when hunting.
         log_env: record the env state (True) or not (False).
+        channels: list of active (1) and inative (0) channels e.g. [0,1].
+        drop_connect_p: the probability of edge drop out, per time step.
+        genome: neat generated genome.
+        config: the neat configuration holder.
     Returns:
         time: the number of steps taken to catch all prey.
               Returns n_steps-1 if the agent fails.
@@ -44,21 +52,31 @@ def predator_trial(
     """
     pk_hw = pk // 2  # half width of prey's Gaussian signal (in rc)
 
+    # Reset agent
+    if agnt is None:
+        agnt = multimodal_mazes.AgentNeat(
+            location=[pk_hw + (size // 2), pk_hw + (size // 2)],
+            channels=channels,
+            sensor_noise_scale=sensor_noise_scale,
+            drop_connect_p=drop_connect_p,
+            genome=genome,
+            config=config,
+        )
+    else:
+        agnt.location = np.array([pk_hw + (size // 2), pk_hw + (size // 2)])
+        agnt.sensor_noise_scale = sensor_noise_scale
+        agnt.outputs *= 0.0
+        if agnt.type == "Hidden skip":
+            agnt.memory = np.zeros_like(agnt.outputs)
+        elif agnt.type == "Levy":
+            agnt.flight_length = 0
+            agnt.collision = 0
+
     # Create environment with track (1. and walls 0.)
     env = np.zeros((size, size, len(agnt.channels) + 1))
     env[:, :, -1] = 1.0
     env = np.pad(env, pad_width=((pk_hw, pk_hw), (pk_hw, pk_hw), (0, 0)))
     env_log = [np.copy(env)]
-
-    # Reset agent
-    agnt.location = np.array([pk_hw + (size // 2), pk_hw + (size // 2)])
-    agnt.sensor_noise_scale = sensor_noise_scale
-    agnt.outputs *= 0.0
-    if agnt.type == "Hidden skip":
-        agnt.memory = np.zeros_like(agnt.outputs)
-    elif agnt.type == "Levy":
-        agnt.flight_length = 0
-        agnt.collision = 0
 
     # Define prey
     k1d = signal.windows.gaussian(pk, std=1)
@@ -172,6 +190,10 @@ def eval_predator_fitness(
     pc,
     pm=None,
     pe=None,
+    channels=None,
+    drop_connect_p=None,
+    genome=None,
+    config=None,
 ):
     """
     Evaluates the fitness of an agent across multiple predator trials.
@@ -188,6 +210,10 @@ def eval_predator_fitness(
         pc: the persistence of cues in the environment from 0 to 1 (instantaneous to constant).
         pm: the probability of prey moving (per timestep) when hunting.
         pe: the probability of prey emitting cues (per timestep) when hunting.
+        channels: list of active (1) and inative (0) channels e.g. [0,1].
+        drop_connect_p: the probability of edge drop out, per time step.
+        genome: neat generated genome.
+        config: the neat configuration holder.
     Returns:
         fitness: the mean fitness across trials, between [0,1].
         times: a np vector with the length of each trial.
@@ -211,6 +237,11 @@ def eval_predator_fitness(
             pc=pc,
             pm=pm,
             pe=pe,
+            log_env=False,
+            channels=channels,
+            drop_connect_p=drop_connect_p,
+            genome=genome,
+            config=config,
         )
 
         fitness.append(prey_state)
