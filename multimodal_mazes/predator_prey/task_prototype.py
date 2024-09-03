@@ -49,39 +49,16 @@ def linear_prey_trial(
         preys: a list containing the prey agents.
         env_log: a list storing the env at every step.
     """
-
-    # Half width of prey's Gaussian signal (in rc)
-    pk_hw = pk // 2  
+    pk_hw = pk // 2  # half width of prey's Gaussian signal (in rc)
 
     # Create environment with track (1. and walls 0.)
-    # env = np.zeros((height, width, len(agnt.channels) + 1))
-    # env[:, :, -1] = 1.0
-    # env = np.pad(env, pad_width=((pk_hw, pk_hw), (pk_hw, pk_hw), (0, 0)))
-    # env_log = [np.copy(env)]
-
-
     env = np.zeros((height, width, len(agnt.channels) + 1))
-    for r in range(height):
-            for c in range(width):
-                if r < 2:  # First two rows fully filled
-                    env[r, c, -1] = 1.0
-                elif c >= (r - 1) and c < width - (r - 1):  # Triangle starts from the third row
-                    env[r, c, -1] = 1.0
-
-    
-    # Padding the environment as before
+    env[:, :, -1] = 1.0
     env = np.pad(env, pad_width=((pk_hw, pk_hw), (pk_hw, pk_hw), (0, 0)))
-
-    # Log initial environment state
-    env_log = [(np.copy(env))]
-
-    # Initialize agent location and reset the agent as before
-    agnt.location = np.array([pk_hw + (height // 2), pk_hw + (width // 2)])
-        
-
+    env_log = [np.copy(env)]
 
     # Reset agent
-    # agnt.location = np.array([pk_hw + (height // 2), pk_hw + (width // 2)])
+    agnt.location = np.array([pk_hw + (height // 2), pk_hw + (width // 2)])
     agnt.sensor_noise_scale = sensor_noise_scale
     agnt.outputs *= 0.0
     if agnt.type == "Hidden skip":
@@ -89,11 +66,9 @@ def linear_prey_trial(
     elif agnt.type == "Levy":
         agnt.flight_length = 0
         agnt.collision = 0
-    elif agnt.type == 'Kinetic alignment':
-        agnt.direction = 0
 
-    # Define prey cues
-    k1d = signal.windows.gaussian(pk, std=6)
+    # Define prey
+    k1d = signal.windows.gaussian(pk, std=9)
     k2d = np.outer(k1d, k1d)
     k1d_noise = signal.windows.gaussian(pk//8, std=1)
     k2d_noise = np.outer(k1d_noise, k1d_noise)
@@ -101,35 +76,53 @@ def linear_prey_trial(
     # Define possible directions
     preys = []
     directions = [-1, 1]
-    direction = [0 for prey in range(n_prey)]
+    direction = 0
 
-    # Define prey location and behaviour according to case
+    # Define start positions for the different cases
     if scenario == 'Static':
-        start_c = np.random.choice(range(width), size=n_prey, replace=False)
-        
+        rcs = np.stack(np.argwhere(env[:, :, -1]))
+        prey_rcs = np.random.choice(range(width), size=n_prey, replace=False)
     elif scenario != 'Static':
-        possible_starts = [[width//2], [ width-1, 0], [(width//4), ((3*width)//4)], [width-5, 4]]
+        possible_starts = [[[pk_hw, pk_hw+width//2]], [[pk_hw, width+pk_hw-1], [pk_hw, pk_hw]], [[pk_hw, pk_hw+(width//4)], [pk_hw, pk_hw+((3*width)//4)]], [[pk_hw, width+pk_hw-5], [pk_hw, pk_hw+4]]]
         choice = np.random.choice(range(2)) 
         if case == '4':
             direction = [directions[choice], directions[1-choice]]
-            start_c = [possible_starts[int(case)-1][choice], possible_starts[int(case)-1][1-choice]]
+            start_rc = [possible_starts[int(case)-1][choice], possible_starts[int(case)-1][1-choice]]
         else:
             direction = [directions[choice]]
-            start_c = [possible_starts[int(case)-1][choice]] if len(possible_starts[int(case)-1]) == 2 else [possible_starts[int(case)-1][0]]
+            start_rc = [possible_starts[int(case)-1][choice]] if len(possible_starts[int(case)-1]) == 2 else [possible_starts[int(case)-1][0]]
+
+        # if case == "1":
+        #     start_rc = [[pk_hw, pk_hw+width//2]]
+        #     direction = [directions[choice]]
+        # elif case == "2":
+        #     possible_starts = [[pk_hw, width+pk_hw-1], [pk_hw, pk_hw]]
+        #     start_rc = [possible_starts[choice]]
+        #     direction = [directions[choice]]
+        # elif case == "3":
+        #     possible_starts = [[pk_hw, pk_hw+(width//4)], [pk_hw, pk_hw+((3*width)//4)]]
+        #     start_rc = [possible_starts[choice]]
+        #     direction = [directions[choice]]
+        # elif case == "4":
+        #     #possible_starts = [[pk_hw, pk_hw+(width//2)-2], [pk_hw, pk_hw+(width//2)+2]]
+        #     possible_starts = [[pk_hw, width+pk_hw-5], [pk_hw, pk_hw+4]]
+        #     start_rc = [possible_starts[choice], possible_starts[1-choice]]
+        #     direction = [directions[choice], directions[1-choice]]
         
-    # Create prey
     for n in range(n_prey):
-        preys.append(
-            multimodal_mazes.PreyLinear(
-                location=[pk_hw, pk_hw+start_c[n]], channels=[0, 0], scenario=scenario, motion=motion, direction=direction[n]
+        if scenario == "Static":
+            preys.append(
+                multimodal_mazes.PreyLinear(
+                    location=rcs[prey_rcs[n]], channels=[0, 0], scenario=scenario, motion=motion, direction=direction
+                )
             )
-        )
-
-        # Set correct direction for kinetic alignment agent
-        if agnt.type == 'Kinetic alignment':
-            agnt.direction = -direction[n]
-
-        preys[n].state = 1
+        elif scenario != "Static":
+            preys.append(
+                multimodal_mazes.PreyLinear(
+                    location=start_rc[n], channels=[0, 0], scenario=scenario, motion=motion, direction=direction[n]
+                )
+            )
+        preys[n].state = 1  # free (1) or caught (0)
         preys[n].path = [list(preys[n].location)]
 
         if scenario != "Two Prey":
@@ -140,53 +133,55 @@ def linear_prey_trial(
                 preys[n].cues = (cue, 1-cue)
             preys[n].cues = (1-cue, cue)
     
+    
     # Sensation-action loop
     path = [list(agnt.location)]
     prey_counter = np.copy(n_prey)
     
     for time in range(n_steps):
-        # Reset channels
-        env[:, :, :-1] *= pc  
+
+        env[:, :, :-1] *= pc  # reset channels
 
         # Prey
         for n, prey in enumerate(preys):
-            # Caught
             if prey.state == 1:
-                if (prey.location == agnt.location).all():
+                if (prey.location == agnt.location).all():  # caught
                     prey.state = 0
                     prey_counter -= 1
                     if scenario == "Two Prey":
                         prey_counter = 0
 
-                # Free
-                else:
+                else: # free
                     if scenario == "Two Prey":
                         if n == 0:
                             random_num = np.random.rand()
                         if random_num < pm:
                             prey.move(env)
-
                     if scenario != "Static" and np.random.rand() < pm:
-                    # if scenario != "Static" and (int(str(time)[-1]) / 10 <= pm):
+                    #if scenario != "Static" and (int(str(time)[-1]) / 10 <= pm):
                         prey.move(env)
-                    
-                    # Trial failed
-                    if prey.collision == 1:
-                        prey_counter -= 1  
-
-                    # Trial not failed   
-                    else:
+                        
+                    if prey.collision == 1:  # trial failed
+                        prey_counter -= 1     
+                    else:  # trial not failed
                         prey.path.append(list(prey.location))
-                        r, c = prey.location
 
                         # Emit cues
+                        r, c = prey.location                        
+                        
                         if np.random.rand() < pe:
                             cue_top = r - pk_hw
                             cue_bottom = r + pk_hw
                             cue_left = c - pk_hw
                             cue_right = c + pk_hw
 
-                            if time <= visible_steps:
+                            if scenario == "Static":
+                                env[
+                                    cue_top: cue_bottom,
+                                    cue_left : cue_right,
+                                    prey.cues[0],
+                                ] += k2d[:cue_bottom - cue_top, :cue_right - cue_left]
+                            elif scenario != "Static" and time <= visible_steps:
                                 if multisensory == "Balanced" and n == 0:
                                     env[
                                         cue_top: cue_bottom,
@@ -204,8 +199,7 @@ def linear_prey_trial(
                                         cue_left : cue_right,
                                         prey.cues[0],
                                     ] += (k2d[:cue_bottom - cue_top, :cue_right - cue_left])
-
-                        # Emit noise          
+                                    
                         else:
                             cue_top = r - pk_hw//8
                             cue_bottom = r + pk_hw//8
@@ -217,15 +211,15 @@ def linear_prey_trial(
                                 cue_top: cue_bottom,
                                 cue_left : cue_right,
                                 prey.cues[1],
-                            ] += k2d_noise[:cue_bottom - cue_top, :cue_right - cue_left]
+                            ] += k2d_noise[:cue_bottom - cue_top, :cue_right - cue_left] # emit noise
 
-            #Emit broad cue
             if multisensory == "Broad":
                 #Define dimensions of broad cue
                 ek1dc = signal.windows.boxcar(3*width//4 + 1)
                 ek1dr = signal.windows.boxcar(height)
                 ek2d = np.outer(ek1dr, ek1dc)
-                
+
+                #Emit broad cue
                 bcue_top = pk_hw
                 bcue_bottom =  min(pk_hw + height, pk_hw + height)
                 bcue_left = max(pk_hw, prey.location[1] - (3 * width // 8))
@@ -254,6 +248,7 @@ def linear_prey_trial(
         agnt.sense(env)
         agnt.policy()
         agnt.act(env)
+
         path.append(list(agnt.location))
 
     return (
@@ -307,7 +302,6 @@ def eval_linear_prey_fitness(
         paths: a list of np arrays with the predators' path per trial [r,c].
         preys: a list of lists containing the prey agents.
         captured: the percentage of prey captured.
-        approached: the percentage of prey approached.
     """
     fitness, times, paths, preys = [], [], [], []
 
@@ -337,20 +331,14 @@ def eval_linear_prey_fitness(
         paths.append(path)
         preys.append(prey)
 
-    # Capture and approach success
     captured = 0
-    approached = 0
-    for prey, path in zip(preys, paths):
+    for prey in preys:
         for n in range(len(prey)):
-            r, c = prey[n].location
-            if ((abs(r-path[-1][0]) == 1) and (abs(c-path[-1][1]) == 0)) or ((abs(r-path[-1][0]) == 0) and (abs(c-path[-1][1]) == 1)) or ((abs(r-path[-1][0]) == 1) and (abs(c-path[-1][1]) == 1)):
-                approached += 1
             if prey[n].state == 0:
                 captured += 1
-                approached += 1
 
-    captured = (captured / (n_trials*n_prey)) * 100
-    approached = (approached / (n_trials*n_prey)) * 100
+    captured = (captured / n_trials) * 100
+
     fitness = np.array(fitness)
 
     return (
@@ -358,8 +346,7 @@ def eval_linear_prey_fitness(
         np.array(times),
         paths,
         preys,
-        captured, 
-        approached
+        captured
     )
 
 

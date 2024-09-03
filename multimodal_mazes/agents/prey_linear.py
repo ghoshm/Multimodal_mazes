@@ -27,8 +27,6 @@ class PreyLinear():
             motion: "Linear", "Disappearing", "Brownian" or "Levy".
             direction: the direction of prey movement.
         Properties:
-
-  
         """                
         
     def move(self, env):
@@ -44,27 +42,20 @@ class PreyLinear():
 
         # Act (if the action does not collide with a wall)
         if self.type != "Static":
-            possible_directions = [-1, 1]
-            
-            if self.motion == "Brownian":
+              
+            if self.type == "Random":
+                # Change direction for random motion
+                possible_directions = [-1, 1]
                 self.direction = possible_directions[np.random.choice(range(2))]
 
-            elif self.motion == "Levy" and self.flight_length == 0:
-                self.flight_length = np.random.choice(
-                    a=self.flight_lengths,
-                    p=self.flight_pl,
-                )
-                self.direction = possible_directions[np.random.choice(range(2))]
+                if self.motion == "Levy" and self.flight_length == 0:
+                    self.flight_length = np.random.choice(
+                        a=self.flight_lengths,
+                        p=self.flight_pl,
+                    )
             
  
-            if ( 
-                env[
-                    self.location[0],
-                    self.location[1]+self.direction,
-                    -1,
-                ] 
-                == 1.0
-            ):
+            if env[self.location[0], self.location[1]+self.direction, -1] == 1.0:
                 self.location += [0, self.direction]
                 self.collision = 0
 
