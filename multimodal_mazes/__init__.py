@@ -55,3 +55,11 @@ from multimodal_mazes.predator_prey.linear_prey_trial_class_version import(
     LinearPreyFitnessEvaluator,
     LinearPreyParamSearch,
 )
+from multimodal_mazes.predator_prey.RL_linear_prey_trial import(
+    PredatorTrial,
+    LinearPreyEvaluator,
+)
+from multimodal_mazes.RL_testing.function_method import(
+    GridPlotter,
+    QLearnerAgent
+)
