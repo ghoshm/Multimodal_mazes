@@ -42,7 +42,6 @@ class PredatorTrial:
 
         self.env = np.pad(self.env, pad_width=((self.pk_hw, self.pk_hw), (self.pk_hw, self.pk_hw), (0, 0)))
         self.env_log.append(np.copy(self.env))
-        self.agnt.location = np.array([self.pk_hw + (self.height // 2), self.pk_hw + (self.width // 2)])
         self.agnt.sensor_noise_scale = self.sensor_noise_scale
         self.agnt.reset()
         self.init_preys()
@@ -208,18 +207,22 @@ class LinearPreyEvaluator:
         self.pm = pm
         self.pe = pe
 
-    def train_RL(self):
+    def train_RL(self, training_trials):
         self.training_trials = {}
         self.trial_lengths = []
 
-        for trial in tqdm(range(2500)):
+        for trial in tqdm(range(training_trials)):
+            if self.scenario == 'Constant':
+                self.case = str(np.random.randint(1, 4))
+                self.pm = np.random.rand()
             self.training_trial = PredatorTrial(width=self.width, height=self.height, agnt=self.agnt, sensor_noise_scale=self.sensor_noise_scale, n_prey=self.n_prey, pk=self.pk, n_steps=self.n_steps, scenario=self.scenario, case=self.case, motion=self.motion, visible_steps=self.visible_steps, multisensory=self.multisensory, pc=self.pc, pm=self.pm, pe=self.pe)
             training_trial_data = self.training_trial.run_training_trial()
             self.training_trials[trial] = training_trial_data
+            self.training_trials[trial]['prey_states'] = [prey.state for prey in self.training_trial.preys]
             self.trial_lengths.append(len(training_trial_data['path']))
 
-    def training_plots(self):
-        self.agnt.produce_training_plots(training=True, first_5_last_5=True, training_trials=self.training_trials, trial_lengths=self.trial_lengths)
+    def training_plots(self, training_lengths=True, first_5_last_5=True, percentage_captured=True, animate=[False, None]):
+        self.agnt.produce_training_plots(training_lengths=training_lengths, first_5_last_5=first_5_last_5, percentage_captured=percentage_captured, animate=animate, training_trials=self.training_trials, trial_lengths=self.trial_lengths)
 
     def evaluate(self, n_trials):
         times, paths, preys = [], [], []
