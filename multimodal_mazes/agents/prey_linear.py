@@ -4,7 +4,16 @@ import numpy as np
 
 class PreyLinear():
     def __init__(self, location, channels, scenario, motion, direction):
-        
+        """
+        Creates a linear prey for linear prey tasks. 
+        Arguments:
+            location: initial position [r,c].
+            channels: list of active (1) and inative (0) channels e.g. [0,1].
+            scenario: Either "Static", "Constant" or "Random".
+            motion: "Linear", "Disappearing", "Brownian" or "Levy".
+            direction: the direction of prey movement.
+        Properties:
+        """    
         self.location = np.array(location)
         self.channels = np.array(channels)
         self.type = scenario
@@ -16,18 +25,7 @@ class PreyLinear():
             self.flight_length = 0  # length of current flight
             self.flight_lengths = np.arange(1, 8)  # possible flight lengths
             self.flight_pl = self.flight_lengths.astype(float) ** -2
-            self.flight_pl /= np.sum(self.flight_pl)  # p of each flight length
-        
-        """
-        Creates a linear prey for linear prey tasks. 
-        Arguments:
-            location: initial position [r,c].
-            channels: list of active (1) and inative (0) channels e.g. [0,1].
-            scenario: Either "Static", "Constant" or "Random".
-            motion: "Linear", "Disappearing", "Brownian" or "Levy".
-            direction: the direction of prey movement.
-        Properties:
-        """                
+            self.flight_pl /= np.sum(self.flight_pl)  # p of each flight length            
         
     def move(self, env):
         """
@@ -55,8 +53,8 @@ class PreyLinear():
                     )
             
  
-            if env[self.location[0], self.location[1]+self.direction, -1] == 1.0:
-                self.location += [0, self.direction]
+            if env[self.location[0], self.location[1] + self.direction, -1] == 1.0:
+                self.location += np.array([0, self.direction])
                 self.collision = 0
 
                 if self.motion == "Levy":

@@ -71,12 +71,14 @@ class PredatorTrial:
         else:
             possible_starts = [[self.width//2], [self.width-1, 0], [(self.width//4), ((3*self.width)//4)], [self.width-5, 4]]
             choice = np.random.choice(range(2))
-            direction = [0 for _ in range(self.n_prey)]
+            # direction = [0 for _ in range(self.n_prey)]
+            directions = [-1, 1]
+            
             if self.case == '4':
-                direction = [choice, 1-choice]
+                direction = [directions[choice], directions[1-choice]]
                 start_c = [possible_starts[int(self.case)-1][choice], possible_starts[int(self.case)-1][1-choice]]
             else:
-                direction = [choice]
+                direction = [directions[choice]]
                 start_c = [possible_starts[int(self.case)-1][choice]] if len(possible_starts[int(self.case)-1]) == 2 else [possible_starts[int(self.case)-1][0]]
 
         for n in range(self.n_prey):

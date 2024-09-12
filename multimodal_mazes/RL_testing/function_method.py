@@ -83,22 +83,22 @@ class GridPlotter:
         plt.legend()
         plt.title('Training Progress')
             
-    def animated_trial(self, training_trial):
-        ax = self.plot_env(env=training_trial['env'][1])
+    def animated_trial(self, trial_data):
+        ax = self.plot_env(env=trial_data['env'][1])
         agnt_animation = ax.scatter([], [], s=120, color='k', zorder=3)
-        preys_animation = [ax.scatter([], [], s=60, color='k', alpha=0.5, marker='o', zorder=2) for _ in range(len(training_trial['prey_locations'][0]))]
+        preys_animation = [ax.scatter([], [], s=60, color='k', alpha=0.5, marker='o', zorder=2) for _ in range(len(trial_data['prey_locations'][0]))]
 
         def update_animation(t):
-            env = training_trial['env']
+            env = trial_data['env']
             combined_env = (colors.LinearSegmentedColormap.from_list("", ["white", "xkcd:ultramarine"])(env[t][:,:,0]) + colors.LinearSegmentedColormap.from_list("", ["white", "xkcd:magenta"])(env[t][:,:,1])) / 2
             combined_env = np.clip(combined_env, 0, 1)  # Ensure the values are between 0 and 1
             ax.imshow(combined_env, interpolation='gaussian', zorder=0)
             
-            agnt_animation.set_offsets(list(training_trial['path'][t])[::-1])
+            agnt_animation.set_offsets(list(trial_data['path'][t])[::-1])
             for i in range(len(preys_animation)):
-                preys_animation[i].set_offsets(list(training_trial['prey_locations'][t][i])[::-1])
+                preys_animation[i].set_offsets(list(trial_data['prey_locations'][t][i])[::-1])
     
-        anim = animation.FuncAnimation(ax.figure, update_animation, frames=range(0, len(training_trial['path'])), blit=False)
+        anim = animation.FuncAnimation(ax.figure, update_animation, frames=range(0, len(trial_data['path'][:30])), blit=False)
         anim.save("Trial.gif", dpi=300)     
 
 
@@ -124,30 +124,30 @@ class QLearnerAgent:
         self.theta = np.zeros((n_features, self.n_actions))
         
     def reset(self):
-        self.location = self.reset_location
-        self.agent_direction = int(0)
+        self.location = np.copy(self.reset_location)
+        self.agent_direction = 0
         
     def sense_features(self, location):
         features = np.zeros((self.n_features))
         scaled_distance, scaled_angle = self.closest_prey_features(location)
-        features[0] = self.env[location[0] - 1, location[1], 0]
-        features[1] = self.env[location[0] + 1, location[1], 0]
-        features[2] = self.env[location[0], location[1] - 1, 0]
-        features[3] = self.env[location[0], location[1] + 1, 0]
-        features[4] = scaled_distance
-        features[5] = scaled_angle
+        features[0] = scaled_distance
+        features[1] = scaled_angle
+        features[2] = self.env[location[0] - 1, location[1], 0]
+        features[3] = self.env[location[0] + 1, location[1], 0]
+        features[4] = self.env[location[0], location[1] - 1, 0]
+        features[5] = self.env[location[0], location[1] + 1, 0]
         return features
     
     def closest_prey_features(self, location):
         nearest_prey = min(self.prey_locations, key=lambda reward: np.linalg.norm(location - np.array(reward)))
-        delta = tuple(np.array(location) - np.array(nearest_prey[0]))
+        delta = location - nearest_prey[0]
         scaled_distance = (abs(delta[0]) + abs(delta[1])) / self.max_distance
         angle = np.arctan2(delta[1], delta[0])
         scaled_angle = angle / (2 * np.pi) if angle >= 0 else (angle + 2 * np.pi) / (2 * np.pi)
         return scaled_distance, scaled_angle
         
     def policy(self, action):
-        next_location = tuple(np.array(self.location) + np.array(self.actions[action]['delta']))
+        next_location = self.location + self.actions[action]['delta']
         next_distance = self.closest_prey_features(next_location)[0]
         closest_distance_difference = next_distance - self.closest_prey_features(self.location)[0]
         
@@ -157,30 +157,33 @@ class QLearnerAgent:
             elif closest_distance_difference < 0:
                 reward = self.cost_per_step + (self.max_distance * 10 / (next_distance * self.max_distance))
             else:
-                reward = self.cost_per_step - (self.max_distance * 10 / (next_distance * self.max_distance))
+                reward = self.cost_per_step #- (self.max_distance * 10 / (next_distance * self.max_distance))
 
         else:
-            next_location = self.location
+            next_location = np.copy(self.location)
             reward = self.cost_per_collision
 
         return next_location, reward
     
     def act(self, env, prey_locations):
+        # self.env = np.array(env)
+        # self.prey_locations = [np.array(prey) for prey in prey_locations]
         self.env = env
         self.prey_locations = prey_locations
-        
-        action = int(self.epsilon_greedy_policy(self.location))        
+        action = self.epsilon_greedy_policy(self.epsilon, self.location)      
         next_location, _ = self.policy(action)
         self.location = next_location
-        # self.learn(self.location, next_location, action, next_action, reward, decaying_alpha)
+        return next_location
         
     def training_act(self, env, prey_locations):
+        # self.env = np.array(env)
+        # self.prey_locations = [np.array(prey) for prey in prey_locations]
         self.env = env
         self.prey_locations = prey_locations
         
-        action = int(self.epsilon_greedy_policy(self.location))        
+        action = self.epsilon_greedy_policy(self.epsilon, self.location)        
         next_location, reward = self.policy(action)
-        next_action = int(self.epsilon_greedy_policy(next_location))
+        next_action = self.epsilon_greedy_policy(0, next_location)
         
         self.learn(self.location, next_location, action, next_action, reward, self.alpha)
         self.location = next_location
@@ -200,8 +203,8 @@ class QLearnerAgent:
     def Q_value(self, location):
         return np.dot(self.sense_features(location), self.theta)
 
-    def epsilon_greedy_policy(self, location):
-        return np.random.randint(self.n_actions) if (np.random.rand() < self.epsilon) else np.argmax(self.Q_value(location))
+    def epsilon_greedy_policy(self, epsilon, location):
+        return np.random.randint(self.n_actions) if (np.random.rand() < epsilon) else np.argmax(self.Q_value(location))
     
     def update_parameter(self, parameter, decay_rate, parameter_min):
         return max(parameter * decay_rate, parameter_min)
@@ -210,29 +213,29 @@ class QLearnerAgent:
         min_length = 0
         while len(prey_locations) > 0:
             nearest_prey = min(prey_locations, key=lambda reward: np.linalg.norm(location - np.array(reward)))
-            delta = tuple(np.array(location) - np.array(prey_locations[0]))
+            delta = location - prey_locations[0]
             min_length += abs(delta[0]) + abs(delta[1])
             location = nearest_prey        
-            prey_locations = np.delete(prey_locations, np.argwhere(prey_locations == nearest_prey))
+            prey_locations = prey_locations[prey_locations != nearest_prey] 
         return min_length
     
-    def produce_training_plots(self, training_lengths, first_5_last_5, percentage_captured, animate, training_trials, trial_lengths):
+    def produce_plots(self, training_lengths, first_5_last_5, percentage_captured, animate, trials, trial_lengths):
         self.plotter = GridPlotter(self)
         if training_lengths:
-            minimum_trial_lengths = [self.minimum_trial_length(training_trials[i]['path'][0], training_trials[i]['prey_locations'][0]) for i in range(len(trial_lengths))]
+            minimum_trial_lengths = [self.minimum_trial_length(trials[i]['path'][0], trials[i]['prey_locations'][0]) for i in range(len(trial_lengths))]
             relative_trial_lengths = [trial_lengths[i] / minimum_trial_lengths[i] for i in range(len(trial_lengths))]
             self.plotter.plot_training_progress(relative_trial_lengths=relative_trial_lengths)
         if first_5_last_5:
             fig, axs = plt.subplots(2, 5, figsize=(10, 4))
             for i in range(5):
-                axs[0, i] = self.plotter.plot_env(training_trials[i]['env'][1], ax=axs[0, i])
-                axs[1, (4 - i)] = self.plotter.plot_env(training_trials[len(training_trials) - i - 1]['env'][1], ax=axs[1, (4 - i)])
-                axs[0, i] = self.plotter.plot_prey(training_trials[i]['env'][1], training_trials[i]['prey_locations'][0], ax=axs[0, i])
-                axs[1, (4 - i)] = self.plotter.plot_prey(training_trials[len(training_trials) - i - 1]['env'][1], training_trials[len(training_trials) - i - 1]['prey_locations'][0], ax=axs[1, (4 - i)])
+                axs[0, i] = self.plotter.plot_env(trials[i]['env'][1], ax=axs[0, i])
+                axs[1, (4 - i)] = self.plotter.plot_env(trials[len(trials) - i - 1]['env'][1], ax=axs[1, (4 - i)])
+                axs[0, i] = self.plotter.plot_prey(trials[i]['env'][1], trials[i]['prey_locations'][0], ax=axs[0, i])
+                axs[1, (4 - i)] = self.plotter.plot_prey(trials[len(trials) - i - 1]['env'][1], trials[len(trials) - i - 1]['prey_locations'][0], ax=axs[1, (4 - i)])
                 
-                self.plotter.plot_episode(training_trials[i], ax=axs[0, i])
-                self.plotter.plot_episode(training_trials[len(training_trials) - i - 1], ax=axs[1, (4 - i)])
+                self.plotter.plot_episode(trials[i], ax=axs[0, i])
+                self.plotter.plot_episode(trials[len(trials) - i - 1], ax=axs[1, (4 - i)])
         if percentage_captured:
-            self.plotter.plot_percentage_captured(training_trials)
+            self.plotter.plot_percentage_captured(trials)
         if animate[0]:
-            self.plotter.animated_trial(training_trials[animate[1]])
+            self.plotter.animated_trial(trials[animate[1]])
