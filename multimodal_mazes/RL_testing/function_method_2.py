@@ -129,32 +129,37 @@ class QLearnerAgent:
         
     def sense_features(self, location):
         features = np.zeros((self.n_features))
-        prey_location, scaled_distance, scaled_angle = self.closest_prey_features(location)
-        features[0] = scaled_distance
-        features[1] = scaled_angle
-        features[2] = self.env[location[0] - 1, location[1], 0]   
-        features[3] = self.env[location[0] + 1, location[1], 0]    
-        features[4] = self.env[location[0], location[1] - 1, 0]   
-        features[5] = self.env[location[0], location[1] + 1, 0]   
-        features[6] = self.prey_pm
-        # features[2] = self.env[location[0] - 1, location[1], 0]     # distance up
-        # features[3] = self.env[location[0] + 1, location[1], 0]     # distance down 
-        # features[4] = self.env[location[0], location[1] - 1, 0]     # distance left
-        # features[5] = self.env[location[0], location[1] + 1, 0]     # distance right
-        # features[6] = self.env[location[0] - 1, location[1] + 1, 0] # distance up-right
-        # features[7] = self.env[location[0] - 1, location[1] - 1, 0] # distance up-left
-        # features[8] = self.env[location[0] + 1, location[1] + 1, 0] # distance down-right
-        # features[9] = self.env[location[0] + 1, location[1] - 1, 0] # distance down-left
-        # features[10] = self.prey_pm
+        prey_index, scaled_distance, scaled_angle = self.closest_prey_features(location)
+        features[0] = scaled_distance                                   # Current distance
+        features[1] = scaled_angle                                      # Current angle
+        features[2] = self.env[location[0] - 1, location[1], 0]         # Sensory information up
+        features[3] = self.env[location[0] + 1, location[1], 0]         # Sensory information down
+        features[4] = self.env[location[0], location[1] - 1, 0]         # Sensory information left
+        features[5] = self.env[location[0], location[1] + 1, 0]         # Sensory information right
+        features[6] = self.env[location[0] - 1, location[1] + 1, 0]     # Sensory information up-right
+        features[7] = self.env[location[0] - 1, location[1] - 1, 0]     # Sensory information up-left
+        features[8] = self.env[location[0] + 1, location[1] + 1, 0]     # Sensory information down-right
+        features[9] = self.env[location[0] + 1, location[1] - 1, 0]     # Sensory information down-left
+        features[10] = self.prey_pm                                     # Prey velocity
+        features[11] = self.prey_directions[prey_index]                 # Prey direction
+
+        # Predicted distance
+        # Predicted angle
+        # Predicted time to intercept
+        # ~ Escape liklihood
+        # Energy efficiency
+
         return features
-    
+
     def closest_prey_features(self, location):
-        nearest_prey = min(self.prey_locations, key=lambda prey: np.linalg.norm(location - np.array(prey)))
+        nearest_prey_index, nearest_prey = min(enumerate(self.prey_locations), key=lambda prey: np.linalg.norm(location - np.array(prey[1])))
         delta = location - nearest_prey[0]
-        scaled_distance = np.linalg.norm(delta) / self.max_distance
+        # scaled_distance = np.linalg.norm(delta) / self.max_distance
+        scaled_distance = (abs(delta[0]) + abs(delta[1])) / self.max_distance
         angle = np.arctan2(delta[1], delta[0])
+        # scaled_angle = angle / (2 * np.pi) if angle >= 0 else (angle + 2 * np.pi) / (2 * np.pi)
         scaled_angle = angle / np.pi
-        return nearest_prey, scaled_distance, scaled_angle
+        return nearest_prey_index, scaled_distance, scaled_angle
         
     def policy(self, action):
         next_location = self.location + self.actions[action]['delta']
@@ -175,24 +180,40 @@ class QLearnerAgent:
 
         return next_location, reward
     
-    def act(self, env, prey_locations, prey_pm):
-        # self.env = np.array(env)
-        # self.prey_locations = [np.array(prey) for prey in prey_locations]
+    def act(self, env, prey_locations, prey_directions, prey_pm, visible=True):
         self.env = env
         self.prey_pm = prey_pm
-        self.prey_locations = prey_locations
+        self.prey_directions = prey_directions
         
+        if visible:
+            self.last_seen_prey_locations = prey_locations
+            self.prey_locations = self.last_seen_prey_locations
+            self.last_seen = 0
+        else:
+            self.last_seen += 1
+            offsets = np.zeros_like(self.last_seen_prey_locations)
+            offsets[:, 1] = prey_directions * self.last_seen
+            self.prey_locations = self.last_seen_prey_locations + offsets
+
         action = self.epsilon_greedy_policy(self.epsilon, self.location)      
         next_location, _ = self.policy(action)
         self.location = next_location
         return next_location
         
-    def training_act(self, env, prey_locations, prey_pm):
-        # self.env = np.array(env)
-        # self.prey_locations = [np.array(prey) for prey in prey_locations]
+    def training_act(self, env, prey_locations, prey_directions, prey_pm, visible=True):
         self.env = env
         self.prey_pm = prey_pm
-        self.prey_locations = prey_locations
+        self.prey_directions = prey_directions
+        
+        if visible:
+            self.last_seen_prey_locations = prey_locations
+            self.prey_locations = self.last_seen_prey_locations
+            self.last_seen = 0
+        else:
+            self.last_seen += 1
+            offsets = np.zeros_like(self.last_seen_prey_locations)
+            offsets[:, 1] = prey_directions * self.last_seen
+            self.prey_locations = self.last_seen_prey_locations + offsets
         
         action = self.epsilon_greedy_policy(self.epsilon, self.location)        
         next_location, reward = self.policy(action)
@@ -201,8 +222,8 @@ class QLearnerAgent:
         self.learn(self.location, next_location, action, next_action, reward, self.alpha)
         self.location = next_location
 
-        self.alpha = self.update_parameter(self.alpha, 0.99, 0.05)
-        self.epsilon = self.update_parameter(self.epsilon, 0.99, 0.01)
+        self.alpha = self.update_parameter(self.alpha, 0.99, 0.05, reward)
+        self.epsilon = self.update_parameter(self.epsilon, 0.99, 0.01, reward)
 
         return next_location, reward
         
@@ -219,7 +240,7 @@ class QLearnerAgent:
     def epsilon_greedy_policy(self, epsilon, location):
         return np.random.randint(self.n_actions) if (np.random.rand() < epsilon) else np.argmax(self.Q_value(location))
     
-    def update_parameter(self, parameter, decay_rate, parameter_min):
+    def update_parameter(self, parameter, decay_rate, parameter_min, reward=None):
         return max(parameter * decay_rate, parameter_min)
     
     def minimum_trial_length(self, location, prey_locations):
@@ -252,3 +273,5 @@ class QLearnerAgent:
             self.plotter.plot_percentage_captured(trials)
         if animate[0]:
             self.plotter.animated_trial(trials[animate[1]])
+
+    

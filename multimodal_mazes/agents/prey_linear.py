@@ -3,13 +3,14 @@
 import numpy as np
 
 class PreyLinear():
-    def __init__(self, location, channels, scenario, motion, direction):
+    def __init__(self, location, channels, scenario, motion, direction, pm):
         """
         Creates a linear prey for linear prey tasks. 
         Arguments:
             location: initial position [r,c].
             channels: list of active (1) and inative (0) channels e.g. [0,1].
             scenario: Either "Static", "Constant" or "Random".
+            pm: probability of moving
             motion: "Linear", "Disappearing", "Brownian" or "Levy".
             direction: the direction of prey movement.
         Properties:
@@ -19,6 +20,7 @@ class PreyLinear():
         self.type = scenario
         self.collision = 0
         self.direction = direction
+        self.pm = pm
         self.motion = motion
 
         if self.motion == "Levy":

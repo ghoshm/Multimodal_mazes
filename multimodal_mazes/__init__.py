@@ -40,16 +40,16 @@ from multimodal_mazes.analysis.robustness import (
     robustness_to_sensor_noise,
     robustness_to_drop_connect,
 )
-from multimodal_mazes.predator_prey.predator_trial import (
-    predator_trial,
-    eval_predator_fitness,
-    prey_params_search,
-)
-from multimodal_mazes.predator_prey.linear_prey_trial import(
-    linear_prey_trial,
-    eval_linear_prey_fitness,
-    linear_prey_params_search,
-)
+# from multimodal_mazes.predator_prey.predator_trial import (
+#     predator_trial,
+#     eval_predator_fitness,
+#     prey_params_search,
+# )
+# from multimodal_mazes.predator_prey.linear_prey_trial import(
+#     linear_prey_trial,
+#     eval_linear_prey_fitness,
+#     linear_prey_params_search,
+# )
 from multimodal_mazes.predator_prey.linear_prey_trial_class_version import(
     PredatorTrial,
     LinearPreyFitnessEvaluator,
@@ -59,7 +59,7 @@ from multimodal_mazes.predator_prey.RL_linear_prey_trial import(
     PredatorTrial,
     LinearPreyEvaluator,
 )
-from multimodal_mazes.RL_testing.function_method import(
+from multimodal_mazes.RL_testing.function_method_2 import(
     GridPlotter,
     QLearnerAgent
 )
