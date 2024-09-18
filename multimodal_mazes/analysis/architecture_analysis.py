@@ -317,6 +317,7 @@ def architecture_metrics(genome, config, channels):
 def architecture_metrics_matrices(agents, genomes, config):
     """
     Builds two matricies describing a list of agents.
+        Note agents with <= 1 edge will be skipped.
     Arguments:
         agents: a list of indicies, of the genomes to test.
         genomes: neat generated genomes.
@@ -331,12 +332,15 @@ def architecture_metrics_matrices(agents, genomes, config):
     agents_metrics_n, agents_metrics_p = [], []
     for g in agents:
         _, genome, channels = genomes[g]
-        genome = multimodal_mazes.prune_architecture(genome, config)
-        metrics_n, metrics_p = multimodal_mazes.architecture_metrics(
-            genome, config, channels
-        )
-        agents_metrics_n.append(list(metrics_n.values()))
-        agents_metrics_p.append(list(metrics_p.values()))
+        if genome.size()[1] > 1:
+            genome = multimodal_mazes.prune_architecture(genome, config)
+
+            if genome.size()[1] > 1:
+                metrics_n, metrics_p = multimodal_mazes.architecture_metrics(
+                    genome, config, channels
+                )
+                agents_metrics_n.append(list(metrics_n.values()))
+                agents_metrics_p.append(list(metrics_p.values()))
 
     return (
         np.array(agents_metrics_n),
