@@ -43,12 +43,10 @@ class PredatorTrial:
 
         self.env = np.pad(self.env, pad_width=((self.pk_hw, self.pk_hw), (self.pk_hw, self.pk_hw), (0, 0)))
         self.env_log.append(np.copy(self.env))
-
         self.agnt.location = np.array([self.pk_hw + (self.height // 2), self.pk_hw + (self.width // 2)])
         self.agnt.sensor_noise_scale = self.sensor_noise_scale
         self.agnt.outputs *= 0.0
         self.reset_agent_memory()
-
         self.init_preys()
 
     def reset_agent_memory(self):
@@ -61,7 +59,7 @@ class PredatorTrial:
             self.agnt.direction = 0
 
     def init_preys(self):
-        k1d = signal.windows.gaussian(self.pk, std=6)
+        k1d = signal.windows.gaussian(self.pk, std=5)
         self.k2d = np.outer(k1d, k1d)
         k1d_noise = signal.windows.gaussian(self.pk//8, std=1)
         self.k2d_noise = np.outer(k1d_noise, k1d_noise)
@@ -83,7 +81,7 @@ class PredatorTrial:
 
         for n in range(self.n_prey):
             prey = multimodal_mazes.PreyLinear(
-                location=[self.pk_hw, self.pk_hw + start_c[n]], channels=[0, 0], scenario=self.scenario, motion=self.motion, direction=direction[n]
+                location=[self.pk_hw, self.pk_hw + start_c[n]], channels=[0, 0], scenario=self.scenario, motion=self.motion, direction=direction[n], pm=self.pm
             )
             if self.agnt.type == 'Kinetic alignment':
                 self.agnt.direction = -direction[n]

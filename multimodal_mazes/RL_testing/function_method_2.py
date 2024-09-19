@@ -122,6 +122,7 @@ class QLearnerAgent:
         self.gamma = gamma
 
         self.theta = np.zeros((n_features, self.n_actions))
+        self.last_action = None
         
     def reset(self):
         self.location = np.copy(self.reset_location)
@@ -129,30 +130,33 @@ class QLearnerAgent:
         
     def sense_features(self, location):
         features = np.zeros((self.n_features))
-        prey_index, scaled_distance, scaled_angle = self.closest_prey_features(location)
-        features[0] = scaled_distance                                   # Current distance
-        features[1] = scaled_angle                                      # Current angle
-        features[2] = self.env[location[0] - 1, location[1], 0]         # Sensory information up
-        features[3] = self.env[location[0] + 1, location[1], 0]         # Sensory information down
-        features[4] = self.env[location[0], location[1] - 1, 0]         # Sensory information left
-        features[5] = self.env[location[0], location[1] + 1, 0]         # Sensory information right
-        features[6] = self.env[location[0] - 1, location[1] + 1, 0]     # Sensory information up-right
-        features[7] = self.env[location[0] - 1, location[1] - 1, 0]     # Sensory information up-left
-        features[8] = self.env[location[0] + 1, location[1] + 1, 0]     # Sensory information down-right
-        features[9] = self.env[location[0] + 1, location[1] - 1, 0]     # Sensory information down-left
-        features[10] = self.prey_pm                                     # Prey velocity
-        features[11] = self.prey_directions[prey_index]                 # Prey direction
+        
+        features[0] = self.env[location[0] - 1, location[1], 0]         # Sensory information up
+        features[1] = self.env[location[0] + 1, location[1], 0]         # Sensory information down
+        features[2] = self.env[location[0], location[1] + 1, 0]         # Sensory information right
+        features[3] = self.env[location[0], location[1] - 1, 0]         # Sensory information left
+        features[4] = self.env[location[0] - 1, location[1] + 1, 0]     # Sensory information up-right
+        features[5] = self.env[location[0] - 1, location[1] - 1, 0]     # Sensory information up-left
+        features[6] = self.env[location[0] + 1, location[1] + 1, 0]     # Sensory information down-right
+        features[7] = self.env[location[0] + 1, location[1] - 1, 0]     # Sensory information down-left
+        
+        prey_index, scaled_distance, scaled_angle = self.closest_prey_features(self.prey_locations, location)
+        
+        features[8] = scaled_distance                                   # Current distance
+        features[9] = scaled_angle                                      # Current angle
+        
+        offsets = np.zeros_like(self.prey_locations)
+        offsets[:, 1] = self.prey_directions * self.last_seen if np.random.rand() > self.prey_pm else offsets[:, 1]
+        predicted_next_prey_locations = self.prey_locations + offsets
+        _, pred_scaled_distance, pred_scaled_angle = self.closest_prey_features(predicted_next_prey_locations, location)
 
-        # Predicted distance
-        # Predicted angle
-        # Predicted time to intercept
-        # ~ Escape liklihood
-        # Energy efficiency
+        features[10] = pred_scaled_distance     # Predicted distance
+        features[11] = pred_scaled_angle        # Predicted angle
 
         return features
 
-    def closest_prey_features(self, location):
-        nearest_prey_index, nearest_prey = min(enumerate(self.prey_locations), key=lambda prey: np.linalg.norm(location - np.array(prey[1])))
+    def closest_prey_features(self, prey_locations, location):
+        nearest_prey_index, nearest_prey = min(enumerate(prey_locations), key=lambda prey: np.linalg.norm(location - np.array(prey[1])))
         delta = location - nearest_prey[0]
         # scaled_distance = np.linalg.norm(delta) / self.max_distance
         scaled_distance = (abs(delta[0]) + abs(delta[1])) / self.max_distance
@@ -163,8 +167,9 @@ class QLearnerAgent:
         
     def policy(self, action):
         next_location = self.location + self.actions[action]['delta']
-        next_distance = self.closest_prey_features(next_location)[1]
-        closest_distance_difference = next_distance - self.closest_prey_features(self.location)[1]
+        next_distance = self.closest_prey_features(self.prey_locations, next_location)[1]
+        closest_distance_difference = next_distance - self.closest_prey_features(self.prey_locations, self.location)[1]
+        self.last_action = action if self.last_action is None else self.last_action
         
         if self.env[next_location[0], next_location[1], -1] == 1:
             if next_location in self.prey_locations:
@@ -173,6 +178,10 @@ class QLearnerAgent:
                 reward = self.cost_per_step + (self.max_distance * 10 / (next_distance * self.max_distance))
             else:
                 reward = self.cost_per_step #- (self.max_distance * 10 / (next_distance * self.max_distance))
+
+            # if action != self.last_action:
+            #     delta = self.actions[action]['delta']
+            #     reward -= (200 * (abs(delta[0]) + abs(delta[1])))
 
         else:
             next_location = np.copy(self.location)
@@ -195,7 +204,7 @@ class QLearnerAgent:
             offsets[:, 1] = prey_directions * self.last_seen
             self.prey_locations = self.last_seen_prey_locations + offsets
 
-        action = self.epsilon_greedy_policy(self.epsilon, self.location)      
+        action = self.epsilon_greedy_policy(0, self.location)      
         next_location, _ = self.policy(action)
         self.location = next_location
         return next_location
@@ -210,6 +219,7 @@ class QLearnerAgent:
             self.prey_locations = self.last_seen_prey_locations
             self.last_seen = 0
         else:
+            # Include probability of moving
             self.last_seen += 1
             offsets = np.zeros_like(self.last_seen_prey_locations)
             offsets[:, 1] = prey_directions * self.last_seen

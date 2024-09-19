@@ -56,7 +56,7 @@ class PredatorTrial:
             start_c = np.random.choice(range(self.width), size=self.n_prey, replace=False)
             direction = [0]
         else:
-            possible_starts = [[self.width//2], [self.width-2, 1], [(self.width//4), ((3*self.width)//4)], [self.width-5, 4]]
+            possible_starts = [[self.width//2], [self.width-2, 1], [(self.width//4) - 2, ((3*self.width)//4) + 2], [self.width-5, 4]]
             choice = np.random.choice(range(2))
             directions = [-1, 1]
             if self.case == '4':
@@ -94,8 +94,7 @@ class PredatorTrial:
                 self.env_log.append(np.copy(self.env))
 
             location, reward = self.agnt.training_act(self.env_log[-1], prey_locations, prey_directions, self.pm) 
-            self.agnt.cost_per_step = self.agnt.update_parameter(self.agnt.cost_per_step, 1.01, -20)
-
+            
             training_trial_data['path'].append(location)
             training_trial_data['rewards'].append(reward)
             training_trial_data['prey_locations'].append(prey_locations)
@@ -195,22 +194,42 @@ class LinearPreyEvaluator:
         self.pm = pm
         self.pe = pe
 
-    def train_RL(self, training_trials):
+    def train_RL(self, training_trials, curriculum=False):
         self.training_trials = {}
         self.trial_lengths = []
+        pm_range = (0, 1) if not curriculum else (0, 0.1)
+        total_length = 0
+        optimal_length = 0
 
         for trial in tqdm(range(training_trials)):
             if self.scenario == 'Constant':
                 self.case = str(np.random.randint(1, 4))
                 # self.pm = np.random.rand()
-                self.pm = np.random.uniform(0, 1)
+                self.pm = np.random.uniform(pm_range[0], pm_range[1])
                 
             self.training_trial = PredatorTrial(width=self.width, height=self.height, agnt=self.agnt, sensor_noise_scale=self.sensor_noise_scale, n_prey=self.n_prey, pk=self.pk, n_steps=self.n_steps, scenario=self.scenario, case=self.case, motion=self.motion, visible_steps=self.visible_steps, multisensory=self.multisensory, pc=self.pc, pm=self.pm, pe=self.pe)
             training_trial_data = self.training_trial.run_training_trial()
             self.training_trials[trial] = training_trial_data
             self.training_trials[trial]['prey_states'] = [prey.state for prey in self.training_trial.preys]
             self.trial_lengths.append(len(training_trial_data['path']))
+            self.agnt.cost_per_step = self.agnt.update_parameter(self.agnt.cost_per_step, 1.1, -50)
 
+
+            if curriculum:
+                optimal_length += self.calculate_optimal_length(self.case, self.pm, training_trial_data['prey_locations'], training_trial_data['path'][0])
+                total_length += len(training_trial_data['path'])
+
+                if trial % 50 == 0 and trial != 0:
+                    if (optimal_length * 0.85 <= total_length <= optimal_length * 1.15) and pm_range[1] == 1:
+                        print(f'End training, Trial number: {trial}')
+                        break
+                    elif (optimal_length * 0.85 <= total_length <= optimal_length * 1.15) and pm_range[1] != 1:
+                        print(f'End training stage with pm range: {pm_range}, Trial number: {trial}')
+                        pm_range = (pm_range[0], min(1, pm_range[1] + 0.3))
+                        
+                    total_length = 0
+                    optimal_length = 0
+     
     def training_plots(self, training_lengths=False, first_5_last_5=False, percentage_captured=False, animate=[False, None]):
         self.agnt.produce_plots(training_lengths=training_lengths, first_5_last_5=first_5_last_5, percentage_captured=percentage_captured, animate=animate, trials=self.training_trials, trial_lengths=self.trial_lengths)
 
@@ -245,3 +264,12 @@ class LinearPreyEvaluator:
         captured = 100 * captured / total
         approached = 100 * approached / total
         return captured, approached
+    
+    def calculate_optimal_length(self, case, pm, prey_locations, start_position):
+        optimal_length = 0
+    
+        for prey in prey_locations[0]:
+            distance =  abs(start_position[0] - prey[0]) + abs(start_position[0] - prey[0])
+            optimal_length += (distance + int(distance * pm)) if case != "2" else (distance - int(distance * pm))
+
+        return optimal_length
