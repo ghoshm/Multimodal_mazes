@@ -179,9 +179,9 @@ class QLearnerAgent:
             else:
                 reward = self.cost_per_step #- (self.max_distance * 10 / (next_distance * self.max_distance))
 
-            # if action != self.last_action:
-            #     delta = self.actions[action]['delta']
-            #     reward -= (200 * (abs(delta[0]) + abs(delta[1])))
+            if action != self.last_action:
+                delta = self.actions[action]['delta']
+                reward -= (200 * (abs(delta[0]) + abs(delta[1])))
 
         else:
             next_location = np.copy(self.location)
@@ -201,7 +201,7 @@ class QLearnerAgent:
         else:
             self.last_seen += 1
             offsets = np.zeros_like(self.last_seen_prey_locations)
-            offsets[:, 1] = prey_directions * self.last_seen
+            offsets[:, 1] = (prey_directions * self.last_seen * self.prey_pm).astype(int)
             self.prey_locations = self.last_seen_prey_locations + offsets
 
         action = self.epsilon_greedy_policy(0, self.location)      
@@ -219,10 +219,9 @@ class QLearnerAgent:
             self.prey_locations = self.last_seen_prey_locations
             self.last_seen = 0
         else:
-            # Include probability of moving
             self.last_seen += 1
             offsets = np.zeros_like(self.last_seen_prey_locations)
-            offsets[:, 1] = prey_directions * self.last_seen
+            offsets[:, 1] = (prey_directions * self.last_seen * self.prey_pm).astype(int)
             self.prey_locations = self.last_seen_prey_locations + offsets
         
         action = self.epsilon_greedy_policy(self.epsilon, self.location)        

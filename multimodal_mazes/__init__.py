@@ -4,7 +4,7 @@ from multimodal_mazes.agents.agent_regress import AgentRegress
 from multimodal_mazes.agents.agent_random import AgentRandom
 from multimodal_mazes.agents.agent_rulebased import AgentRuleBased
 from multimodal_mazes.agents.agent_rulebased_memory import AgentRuleBasedMemory
-from multimodal_mazes.agents.prey_linear import PreyLinear
+from multimodal_mazes.agents.prey.prey_linear import PreyLinear
 from multimodal_mazes.agents.agent_intercept import AgentIntercept
 from multimodal_mazes.mazes.maze_env import Maze
 from multimodal_mazes.mazes.track_maze import TrackMaze
@@ -50,7 +50,7 @@ from multimodal_mazes.analysis.robustness import (
 #     eval_linear_prey_fitness,
 #     linear_prey_params_search,
 # )
-from multimodal_mazes.predator_prey.linear_prey_trial_class_version import(
+from multimodal_mazes.predator_prey.rule_based_linear_prey_trial import(
     PredatorTrial,
     LinearPreyFitnessEvaluator,
     LinearPreyParamSearch,
@@ -59,7 +59,7 @@ from multimodal_mazes.predator_prey.RL_linear_prey_trial import(
     PredatorTrial,
     LinearPreyEvaluator,
 )
-from multimodal_mazes.RL_testing.function_method_2 import(
+from multimodal_mazes.RL_Agents.RL_function_method import(
     GridPlotter,
     QLearnerAgent
 )

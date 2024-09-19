@@ -93,7 +93,9 @@ class PredatorTrial:
             if self.log_env:
                 self.env_log.append(np.copy(self.env))
 
-            location, reward = self.agnt.training_act(self.env_log[-1], prey_locations, prey_directions, self.pm) 
+            visible = False if self.visible_steps < time else True
+
+            location, reward = self.agnt.training_act(self.env_log[-1], prey_locations, prey_directions, self.pm, visible) 
             
             training_trial_data['path'].append(location)
             training_trial_data['rewards'].append(reward)
@@ -198,14 +200,20 @@ class LinearPreyEvaluator:
         self.training_trials = {}
         self.trial_lengths = []
         pm_range = (0, 1) if not curriculum else (0, 0.1)
+        visible_steps_range = (1, 30) if not curriculum else (25, 30)
         total_length = 0
         optimal_length = 0
 
         for trial in tqdm(range(training_trials)):
+            disappearing = False
             if self.scenario == 'Constant':
                 self.case = str(np.random.randint(1, 4))
                 # self.pm = np.random.rand()
                 self.pm = np.random.uniform(pm_range[0], pm_range[1])
+            if self.visible_steps is None and trial == 0:
+                disappearing = True
+
+            self.visible_steps = np.random.randint(visible_steps_range[0], visible_steps_range[1]) if disappearing else self.visible_steps
                 
             self.training_trial = PredatorTrial(width=self.width, height=self.height, agnt=self.agnt, sensor_noise_scale=self.sensor_noise_scale, n_prey=self.n_prey, pk=self.pk, n_steps=self.n_steps, scenario=self.scenario, case=self.case, motion=self.motion, visible_steps=self.visible_steps, multisensory=self.multisensory, pc=self.pc, pm=self.pm, pe=self.pe)
             training_trial_data = self.training_trial.run_training_trial()
@@ -226,6 +234,7 @@ class LinearPreyEvaluator:
                     elif (optimal_length * 0.85 <= total_length <= optimal_length * 1.15) and pm_range[1] != 1:
                         print(f'End training stage with pm range: {pm_range}, Trial number: {trial}')
                         pm_range = (pm_range[0], min(1, pm_range[1] + 0.3))
+                        visible_steps_range = (max(1, visible_steps_range[0] - 6), visible_steps_range[1]) if disappearing else (25, 30)
                         
                     total_length = 0
                     optimal_length = 0
@@ -233,8 +242,9 @@ class LinearPreyEvaluator:
     def training_plots(self, training_lengths=False, first_5_last_5=False, percentage_captured=False, animate=[False, None]):
         self.agnt.produce_plots(training_lengths=training_lengths, first_5_last_5=first_5_last_5, percentage_captured=percentage_captured, animate=animate, trials=self.training_trials, trial_lengths=self.trial_lengths)
 
-    def evaluate(self, n_trials, case, pm):
+    def evaluate(self, n_trials, case, pm, visible_steps=100):
         self.test_trials = {}
+        self.visible_steps = visible_steps
         
         for trial in range(n_trials):
             test_trial = PredatorTrial(width=self.width, height=self.height, agnt=self.agnt, sensor_noise_scale=self.sensor_noise_scale, n_prey=self.n_prey, pk=self.pk, n_steps=self.n_steps, scenario=self.scenario, case=case, motion=self.motion, visible_steps=self.visible_steps, multisensory=self.multisensory, pc=self.pc, pm=pm, pe=self.pe)
