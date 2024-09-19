@@ -4,6 +4,40 @@ import multimodal_mazes
 from scipy import signal
 
 class PredatorTrial:
+    """
+    Simulates a predator trial in a multimodal maze environment. The predator (agent) 
+    attempts to capture multiple prey over a defined number of steps. Prey behavior 
+    and environmental cues are modulated based on sensory inputs and predefined scenarios.
+
+    Attributes:
+        width (int): Width of the environment.
+        height (int): Height of the environment.
+        agnt (Agent): The agent interacting within the environment.
+        sensor_noise_scale (float): Noise scaling for sensor input.
+        n_prey (int): Number of prey in the environment.
+        pk (int): Size of the kernel for cue emission.
+        n_steps (int): Maximum number of steps per trial.
+        scenario (str): Scenario type (e.g., 'Static', 'Two Prey').
+        case (str): Case identifier for different configurations.
+        motion (str): Motion pattern for the prey.
+        visible_steps (int): Number of steps during which prey is visible.
+        multisensory (str): Type of sensory environment (e.g., 'Broad', 'Balanced').
+        pc (float): Persistence coefficient for environmental cues.
+        pm (float): Probability of prey movement.
+        pe (float): Probability of environmental events.
+        log_env (bool): Whether to log the environment at each step.
+
+    Methods:
+        init_env(): Initializes the environment and agent's state.
+        reset_agent_memory(): Resets the agent's internal memory depending on its type.
+        init_preys(): Initializes prey positions and states in the environment.
+        run_trial(): Runs a single trial, processing agent and prey actions over steps.
+        process_preys(time): Updates prey positions and handles interactions with the agent.
+        emit_cues(prey, time): Emits sensory cues based on prey positions.
+        emit_noise(prey): Adds noise to the emitted prey cues.
+        emit_broad_cue(prey, time): Emits a broader, less specific sensory cue.
+        apply_edges(): Applies boundary conditions to environmental cues.
+    """
     def __init__(self, width, height, agnt, sensor_noise_scale, n_prey, pk, n_steps, scenario, case, motion, visible_steps, multisensory, pc, pm=None, pe=None, log_env=False):
         self.width = width
         self.height = height
@@ -32,6 +66,7 @@ class PredatorTrial:
         self.init_env()
 
     def init_env(self):
+        """Initializes the environment and agent's position."""
         self.env = np.zeros((self.height, self.width, len(self.agnt.channels) + 1))
         
         for r in range(self.height):
@@ -50,6 +85,7 @@ class PredatorTrial:
         self.init_preys()
 
     def reset_agent_memory(self):
+        """Resets the agent's memory based on its type."""
         if self.agnt.type == "Hidden skip":
             self.agnt.memory = np.zeros_like(self.agnt.outputs)
         elif self.agnt.type == "Levy":
@@ -59,6 +95,7 @@ class PredatorTrial:
             self.agnt.direction = 0
 
     def init_preys(self):
+        """Initializes prey positions and states based on scenario."""
         k1d = signal.windows.gaussian(self.pk, std=5)
         self.k2d = np.outer(k1d, k1d)
         k1d_noise = signal.windows.gaussian(self.pk//8, std=1)
@@ -69,7 +106,6 @@ class PredatorTrial:
         else:
             possible_starts = [[self.width//2], [self.width-1, 0], [(self.width//4), ((3*self.width)//4)], [self.width-5, 4]]
             choice = np.random.choice(range(2))
-            # direction = [0 for _ in range(self.n_prey)]
             directions = [-1, 1]
             
             if self.case == '4':
@@ -100,6 +136,7 @@ class PredatorTrial:
             self.preys.append(prey)
 
     def run_trial(self):
+        """Runs a single trial, processing the agent's and preys' actions."""
         for time in range(self.n_steps):
             self.env[:, :, :-1] *= self.pc
             self.process_preys(time)
@@ -119,6 +156,7 @@ class PredatorTrial:
         return time, np.array(self.path), [prey.state for prey in self.preys], self.preys, self.env_log
 
     def process_preys(self, time):
+        """Processes prey actions and interactions with the agent."""
         for prey in self.preys:
             if prey.state == 1:
                 if (prey.location == self.agnt.location).all():
@@ -142,6 +180,13 @@ class PredatorTrial:
                 self.emit_broad_cue(prey, time)
 
     def emit_cues(self, prey, time):
+        """
+        Emits sensory cues from the prey based on the prey's position and scenario.
+
+        Parameters:
+        - prey (object): The prey object emitting cues.
+        - time (int): The current time step in the simulation.
+        """
         self.pk_hw = self.pk // 2
         r, c = prey.location
         cue_top = r - self.pk_hw
@@ -157,6 +202,12 @@ class PredatorTrial:
                 self.env[cue_top: cue_bottom, cue_left: cue_right, prey.cues[0]] += self.env[cue_top: cue_bottom, cue_left: cue_right, -1] * self.k2d[:cue_bottom - cue_top, :cue_right - cue_left]
 
     def emit_noise(self, prey):
+        """
+        Emits noise cues from the prey within the environment.
+        
+        Parameters:
+        - prey (object): The prey object emitting noise.
+        """
         self.pk_hw = self.pk // 2
         r, c = prey.location
         cue_top = r - self.pk_hw // 8
@@ -168,6 +219,13 @@ class PredatorTrial:
         self.env[cue_top: cue_bottom, cue_left: cue_right, prey.cues[1]] += self.k2d_noise[:cue_bottom - cue_top, :cue_right - cue_left]
 
     def emit_broad_cue(self, prey, time):
+        """
+        Emits broad sensory cues from the prey based on the prey's position and scenario.
+
+        Parameters:
+        - prey (object): The prey object emitting cues.
+        - time (int): The current time step in the simulation.
+        """
         self.pk_hw = self.pk // 2
         ek1dc = signal.windows.boxcar(3 * self.width // 4 + 1)
         ek1dr = signal.windows.boxcar(self.height)
@@ -182,11 +240,36 @@ class PredatorTrial:
             self.env[bcue_top: bcue_bottom, bcue_left: bcue_right, prey.cues[1]] += ek2d[:bcue_bottom - bcue_top, :bcue_right - bcue_left]
 
     def apply_edges(self):
+        """Ensures sensory cues are only within the environment walls."""
         for ch in range(len(self.agnt.channels)):
             self.env[:, :, ch] *= self.env[:, :, -1]
 
 
 class LinearPreyFitnessEvaluator:
+    """
+    Evaluates the fitness of a linear prey scenario based on multiple predator trials.
+
+    Attributes:
+        width (int): Width of the environment.
+        height (int): Height of the environment.
+        agnt (Agent): The agent used in the trial.
+        sensor_noise_scale (float): Noise scaling factor.
+        n_prey (int): Number of prey in the trial.
+        pk (int): Kernel size for cue emission.
+        n_steps (int): Maximum number of steps for the trial.
+        scenario (str): The scenario type.
+        case (str): Case identifier for different configurations.
+        motion (str): Prey motion pattern.
+        visible_steps (int): Number of steps during which prey is visible.
+        multisensory (str): Type of multisensory environment.
+        pc (float): Cue persistence coefficient.
+        pm (float): Probability of prey movement.
+        pe (float): Probability of environmental events.
+
+    Methods:
+        evaluate(n_trials): Runs multiple trials and calculates fitness and performance metrics.
+        calc_success(preys, paths, n_trials): Calculates the percentage of captured and approached prey.
+    """
     def __init__(self, width, height, agnt, sensor_noise_scale, n_prey, pk, n_steps, scenario, case, motion, visible_steps, multisensory, pc, pm=None, pe=None):
         self.width = width
         self.height = height
@@ -205,6 +288,7 @@ class LinearPreyFitnessEvaluator:
         self.pe = pe
 
     def evaluate(self, n_trials):
+        """Runs multiple trials and evaluates fitness based on prey capture."""
         fitness, times, paths, preys = [], [], [], []
 
         for _ in range(n_trials):
@@ -238,6 +322,7 @@ class LinearPreyFitnessEvaluator:
         return (1 - fitness).sum() / fitness.size, np.array(times), paths, preys, captured, approached
 
     def calc_success(self, preys, paths, n_trials):
+        """Calculates the percentage of captured and approached prey."""
         captured = 0
         approached = 0
         for prey, path in zip(preys, paths):
@@ -253,79 +338,3 @@ class LinearPreyFitnessEvaluator:
         approached = (approached / (n_trials * self.n_prey)) * 100
 
         return captured, approached
-
-
-class LinearPreyParamSearch:
-    def __init__(self, grid_size, size, n_prey, n_steps, n_trials, pk, scenario, motion):
-        self.grid_size = grid_size
-        self.size = size
-        self.n_prey = n_prey
-        self.n_steps = n_steps
-        self.n_trials = n_trials
-        self.pk = pk
-        self.scenario = scenario
-        self.motion = motion
-
-    def search(self):
-        noises = np.linspace(start=0.0, stop=2.0, num=self.grid_size)
-        policies = (
-            multimodal_mazes.AgentRuleBased.policies
-            + multimodal_mazes.AgentRuleBasedMemory.policies
-            + ["Levy"]
-        )
-        colors = (
-            multimodal_mazes.AgentRuleBased.colors
-            + multimodal_mazes.AgentRuleBasedMemory.colors
-            + [list(np.array([24, 156, 196, 255]) / 255)]
-        )
-        pms = np.linspace(start=0.0, stop=1.0, num=self.grid_size)
-        pes = np.linspace(start=0.0, stop=1.0, num=self.grid_size)
-
-        results = np.zeros((len(noises), len(policies), len(pms), len(pes)))
-
-        for a, noise in enumerate(noises):
-            for b, policy in enumerate(policies):
-                agnt = self._create_agent(policy)
-                for c, pm in enumerate(pms):
-                    for d, pe in enumerate(pes):
-                        evaluator = LinearPreyFitnessEvaluator(
-                            width=self.size,
-                            height=self.size,
-                            agnt=agnt,
-                            sensor_noise_scale=noise,
-                            n_prey=self.n_prey,
-                            pk=self.pk,
-                            n_steps=self.n_steps,
-                            scenario=self.scenario,
-                            case=None,  # Placeholder, update as needed
-                            motion=self.motion,
-                            visible_steps=None,  # Placeholder, update as needed
-                            multisensory=None,  # Placeholder, update as needed
-                            pc=0.0,
-                            pm=pm,
-                            pe=pe,
-                        )
-
-                        fitness, _, _, _, _, _ = evaluator.evaluate(n_trials=self.n_trials)
-                        results[a, b, c, d] = fitness
-
-        parameters = {
-            "noises": noises,
-            "policies": policies,
-            "colors": colors,
-            "pms": pms,
-            "pes": pes,
-        }
-
-        return results, parameters
-
-    def _create_agent(self, policy):
-        if policy in multimodal_mazes.AgentRuleBased.policies:
-            return multimodal_mazes.AgentRuleBased(location=None, channels=[1, 1], policy=policy)
-        elif policy in multimodal_mazes.AgentRuleBasedMemory.policies:
-            agnt = multimodal_mazes.AgentRuleBasedMemory(location=None, channels=[1, 1], policy=policy)
-            agnt.alpha = 0.6
-            return agnt
-        elif policy == "Levy":
-            return multimodal_mazes.AgentRandom(location=None, channels=[0, 0], motion=policy)
-        return None

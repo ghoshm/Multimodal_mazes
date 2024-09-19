@@ -1,25 +1,9 @@
-# Rule-based agent
-
 import numpy as np
 from matplotlib import cm
 from multimodal_mazes.agents.agent import Agent
 
-
 class AgentIntercept(Agent):
-
-    policies = ['Kinetic alignment']
-    colors = ['#ed45df']
-
-    def __init__(self, location, channels, policy, direction):
-        super().__init__(location, channels)
-
-        assert policy in self.policies, "Invalid policy"
-        self.type = policy
-        self.channel_weights = np.copy(self.channels)
-        self.time = 0
-        self.direction = direction
-
-        """
+    """
         Creates a rule-based agent which follows a specific policy. 
         Arguments:
             location: initial position [r,c].
@@ -35,6 +19,18 @@ class AgentIntercept(Agent):
             Kinetic alignment: Move in the opposite direction of the target movement.                    
         """
 
+    policies = ['Kinetic alignment']
+    colors = ['#ed45df']
+
+    def __init__(self, location, channels, policy, direction):
+        super().__init__(location, channels)
+
+        assert policy in self.policies, "Invalid policy"
+        self.type = policy
+        self.channel_weights = np.copy(self.channels)
+        self.time = 0
+        self.direction = direction        
+
     def policy(self):
         """
         Assign a value to each action based on a policy.
@@ -44,11 +40,6 @@ class AgentIntercept(Agent):
 
         # Apply channel weights
         self.channel_inputs *= self.channel_weights
-
-        # Limit to L and R sensors only
-        # self.channel_inputs *= np.array([1, 1, 0, 0])[
-        #     :, None
-        # ]  
 
         # Implement policy            
         if self.type == "Kinetic alignment": 

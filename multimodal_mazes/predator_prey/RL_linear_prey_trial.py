@@ -5,6 +5,37 @@ from tqdm import tqdm
 from scipy import signal
 
 class PredatorTrial:
+    """
+    Handles the simulation of a single predator-prey trial. 
+
+    Parameters:
+    - width (int): Width of the environment grid.
+    - height (int): Height of the environment grid.
+    - agnt (object): The agent object representing the predator.
+    - sensor_noise_scale (float): Scale for sensor noise for the agent.
+    - n_prey (int): Number of prey in the trial.
+    - pk (int): Size of the kernel for sensory processing.
+    - n_steps (int): Total number of steps in the trial.
+    - scenario (str): Scenario type (e.g., 'Static', 'Dynamic').
+    - case (str): Specific case to run within the scenario.
+    - motion (str): Type of prey movement.
+    - visible_steps (int): Number of steps for which prey is visible.
+    - multisensory (str): Multisensory mode for the environment.
+    - pc (float): Environmental persistence constant.
+    - pm (float, optional): Prey movement probability.
+    - pe (float, optional): Environmental cue probability.
+    - log_env (bool): Flag to log environment data.
+
+    Methods:
+    - init_env(): Initializes the environment and agent.
+    - init_preys(): Initializes prey based on the scenario and case.
+    - run_training_trial(): Runs a training trial with RL for the agent.
+    - run_trial(): Executes a test trial without RL training.
+    - process_preys(): Updates prey locations and checks for prey capture.
+    - emit_cues(): Emits sensory cues for the prey.
+    - emit_noise(): Emits noise cues for prey in the environment.
+    """
+
     def __init__(self, width, height, agnt, sensor_noise_scale, n_prey, pk, n_steps, scenario, case, motion, visible_steps, multisensory, pc, pm=None, pe=None, log_env=True):
         self.width = width
         self.height = height
@@ -31,6 +62,9 @@ class PredatorTrial:
         self.init_env()
 
     def init_env(self):
+        """
+        Initializes the environment grid, including sensory channels and environment boundaries.
+        """
         self.env = np.zeros((self.height, self.width, len(self.agnt.channels) + 1))
         
         for r in range(self.height):
@@ -47,6 +81,10 @@ class PredatorTrial:
         self.init_preys()
 
     def init_preys(self):
+        """
+        Initializes prey objects based on the scenario, case, and motion parameters.
+        Prey are positioned within the environment and their paths are initialized.
+        """
         k1d = signal.windows.gaussian(self.pk, std=5)
         self.k2d = np.outer(k1d, k1d)
         k1d_noise = signal.windows.gaussian(self.pk//8, std=1)
@@ -82,6 +120,10 @@ class PredatorTrial:
             self.preys.append(prey)
     
     def run_training_trial(self):
+        """
+        Runs a training trial where the agent learns via reinforcement learning. 
+        Returns data about the trial including agent path, rewards, and prey locations.
+        """
         training_trial_data = {'path': [], 'rewards': [], 'prey_locations': [], 'env': []}
 
         for time in range(self.n_steps):
@@ -105,6 +147,10 @@ class PredatorTrial:
         return training_trial_data
     
     def run_trial(self):
+        """
+        Runs a test trial without learning. 
+        Returns data about the trial including agent path and prey locations.
+        """
         test_trial_data = {'path': [], 'preys': [], 'prey_locations': [], 'env': []}
 
         for time in range(self.n_steps):
@@ -125,6 +171,16 @@ class PredatorTrial:
         return test_trial_data
 
     def process_preys(self, time):
+        """
+        Processes prey movement, updates prey locations, and checks if prey has been captured by the agent.
+        
+        Parameters:
+        - time (int): Current step in the simulation.
+        
+        Returns:
+        - prey_locations (ndarray): Array of prey locations.
+        - prey_directions (ndarray): Array of prey directions.
+        """
         prey_locations = []
         prey_directions = []
 
@@ -152,6 +208,13 @@ class PredatorTrial:
         return np.array(prey_locations), np.array(prey_directions)
 
     def emit_cues(self, prey, time):
+        """
+        Emits sensory cues from the prey based on the prey's position and scenario.
+
+        Parameters:
+        - prey (object): The prey object emitting cues.
+        - time (int): The current time step in the simulation.
+        """
         self.pk_hw = self.pk // 2
         r, c = prey.location
         cue_top = r - self.pk_hw
@@ -167,6 +230,12 @@ class PredatorTrial:
                 self.env[cue_top: cue_bottom, cue_left: cue_right, prey.cues[0]] += self.env[cue_top: cue_bottom, cue_left: cue_right, -1] * self.k2d[:cue_bottom - cue_top, :cue_right - cue_left]
 
     def emit_noise(self, prey):
+        """
+        Emits noise cues from the prey within the environment.
+        
+        Parameters:
+        - prey (object): The prey object emitting noise.
+        """
         self.pk_hw = self.pk // 2
         r, c = prey.location
         cue_top = r - self.pk_hw // 8
@@ -179,6 +248,34 @@ class PredatorTrial:
 
 
 class LinearPreyEvaluator:
+    """
+    Evaluates the performance of a predator agent across multiple trials.
+    
+    Parameters:
+    - width (int): Width of the environment grid.
+    - height (int): Height of the environment grid.
+    - agnt (object): The agent object representing the predator.
+    - sensor_noise_scale (float): Scale for sensor noise for the agent.
+    - n_prey (int): Number of prey in the trial.
+    - pk (int): Size of the kernel for sensory processing.
+    - n_steps (int): Total number of steps in the trial.
+    - scenario (str): Scenario type (e.g., 'Static', 'Dynamic').
+    - case (str): Specific case to run within the scenario.
+    - motion (str): Type of prey movement.
+    - visible_steps (int): Number of steps for which prey is visible.
+    - multisensory (str): Multisensory mode for the environment.
+    - pc (float): Environmental persistence constant.
+    - pm (float, optional): Prey movement probability.
+    - pe (float, optional): Environmental cue probability.
+    
+    Methods:
+    - train_RL(): Trains the agent using reinforcement learning over multiple trials.
+    - training_plots(): Generates training performance plots.
+    - evaluate(): Evaluates agent performance on test trials.
+    - calculate_success(): Calculates success metrics (prey captured and approached) in test trials.
+    - calculate_optimal_length(): Computes the optimal length to capture prey based on case and movement probability.
+    """
+
     def __init__(self, width, height, agnt, sensor_noise_scale, n_prey, pk, n_steps, scenario, case, motion, visible_steps, multisensory, pc, pm=None, pe=None):
         self.width = width
         self.height = height
@@ -197,6 +294,13 @@ class LinearPreyEvaluator:
         self.pe = pe
 
     def train_RL(self, training_trials, curriculum=False):
+        """
+        Trains the predator agent using reinforcement learning over multiple trials.
+        
+        Parameters:
+        - training_trials (int): Number of training trials to execute.
+        - curriculum (bool): Whether to use curriculum learning.
+        """
         self.training_trials = {}
         self.trial_lengths = []
         pm_range = (0, 1) if not curriculum else (0, 0.1)
@@ -240,9 +344,33 @@ class LinearPreyEvaluator:
                     optimal_length = 0
      
     def training_plots(self, training_lengths=False, first_5_last_5=False, percentage_captured=False, animate=[False, None]):
+        """
+        Generates plots visualizing training performance. 
+        Can display trial lengths, capture percentages, and animations.
+        
+        Parameters:
+        - training_lengths (bool): Plot the lengths of training trials.
+        - first_5_last_5 (bool): Compare performance between the first and last 5 trials.
+        - percentage_captured (bool): Plot percentage of prey captured.
+        - animate (list): Animation options for trial visualization.
+        """
         self.agnt.produce_plots(training_lengths=training_lengths, first_5_last_5=first_5_last_5, percentage_captured=percentage_captured, animate=animate, trials=self.training_trials, trial_lengths=self.trial_lengths)
 
     def evaluate(self, n_trials, case, pm, visible_steps=100):
+        """
+        Runs evaluation trials and returns the success rate of prey capture.
+        
+        Parameters:
+        - n_trials (int): Number of evaluation trials to run.
+        - case (str): Specific case to test.
+        - pm (float): Prey movement probability.
+        - visible_steps (int): Number of steps for which prey is visible.
+        
+        Returns:
+        - test_trials (dict): Data of the test trials.
+        - captured (float): Percentage of prey captured.
+        - approached (float): Percentage of prey approached.
+        """
         self.test_trials = {}
         self.visible_steps = visible_steps
         
@@ -255,6 +383,17 @@ class LinearPreyEvaluator:
         return self.test_trials, captured, approached
 
     def calculate_success(self, trials, n_trials):
+        """
+        Calculates the percentage of prey captured and approached across trials.
+        
+        Parameters:
+        - trials (dict): Dictionary containing trial data.
+        - n_trials (int): Number of trials to evaluate.
+
+        Returns:
+        - captured (float): Percentage of prey captured.
+        - approached (float): Percentage of prey approached.
+        """
         total = 0
         captured = 0
         approached = 0
@@ -276,6 +415,18 @@ class LinearPreyEvaluator:
         return captured, approached
     
     def calculate_optimal_length(self, case, pm, prey_locations, start_position):
+        """
+        Calculates the optimal path length to capture prey based on case and prey movement.
+        
+        Parameters:
+        - case (str): Specific case to evaluate.
+        - pm (float): Prey movement probability.
+        - prey_locations (ndarray): Initial locations of the prey.
+        - start_position (ndarray): Starting position of the agent.
+        
+        Returns:
+        - optimal_length (int): Computed optimal length for prey capture.
+        """
         optimal_length = 0
     
         for prey in prey_locations[0]:

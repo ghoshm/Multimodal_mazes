@@ -1,5 +1,3 @@
-# Linear prey
-
 import numpy as np
 
 class PreyLinear():
