@@ -5,6 +5,7 @@ from multimodal_mazes.agents.agent_random import AgentRandom
 from multimodal_mazes.agents.agent_rulebased import AgentRuleBased
 from multimodal_mazes.agents.agent_rulebased_memory import AgentRuleBasedMemory
 from multimodal_mazes.agents.prey.prey_linear import PreyLinear
+from multimodal_mazes.agents.prey.prey_continuous import PreyContinuous
 from multimodal_mazes.agents.agent_intercept import AgentIntercept
 from multimodal_mazes.mazes.maze_env import Maze
 from multimodal_mazes.mazes.track_maze import TrackMaze
@@ -53,13 +54,31 @@ from multimodal_mazes.analysis.robustness import (
 from multimodal_mazes.predator_prey.rule_based_linear_prey_trial import(
     PredatorTrial,
     LinearPreyFitnessEvaluator,
-    LinearPreyParamSearch,
 )
 from multimodal_mazes.predator_prey.RL_linear_prey_trial import(
-    PredatorTrial,
-    LinearPreyEvaluator,
+    RLPredatorTrial,
+    RLLinearPreyEvaluator,
+)
+from multimodal_mazes.predator_prey.continuous_linear_prey_trial import(
+    PredatorTrialContinuous,
+    LinearPreyEvaluatorContinuous,
 )
 from multimodal_mazes.RL_Agents.RL_function_method import(
     GridPlotter,
     QLearnerAgent
+)
+from multimodal_mazes.RL_Agents.RL_function_method_continuous import(
+    GridPlotterContinuous,
+    QLearnerAgentContinuous
+)
+from multimodal_mazes.RL_Agents.Deep_RL import(
+    GridPlotterContinuous, 
+    ActorNetwork,
+    CriticNetwork, 
+    ReplayBuffer,
+    DDPGAgent
+    # GridPlotter,
+    # QNetwork,
+    # ReplayBuffer,
+    # DQNLearnerAgent
 )

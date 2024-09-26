@@ -87,9 +87,7 @@ class AgentRuleBased(Agent):
 
         elif self.type == "2l-max":
             self.channel_inputs += np.random.rand(*self.channel_inputs.shape) / 1000
-            self.outputs[np.argmax(self.channel_inputs, axis=0)] += np.max(
-                self.channel_inputs, axis=0
-            )
+            self.outputs[np.argmax(self.channel_inputs, axis=0)] += np.max(self.channel_inputs, axis=0)
 
         elif self.type == "Nonlinear fusion":
             self.outputs[:] = np.append(

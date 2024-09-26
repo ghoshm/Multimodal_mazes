@@ -4,14 +4,14 @@ import multimodal_mazes
 from tqdm import tqdm
 from scipy import signal
 
-class PredatorTrial:
+class RLPredatorTrial:
     """
     Handles the simulation of a single predator-prey trial. 
 
     Parameters:
     - width (int): Width of the environment grid.
     - height (int): Height of the environment grid.
-    - agnt (object): The agent object representing the predator.
+    - agent (object): The agent object representing the predator.
     - sensor_noise_scale (float): Scale for sensor noise for the agent.
     - n_prey (int): Number of prey in the trial.
     - pk (int): Size of the kernel for sensory processing.
@@ -36,10 +36,10 @@ class PredatorTrial:
     - emit_noise(): Emits noise cues for prey in the environment.
     """
 
-    def __init__(self, width, height, agnt, sensor_noise_scale, n_prey, pk, n_steps, scenario, case, motion, visible_steps, multisensory, pc, pm=None, pe=None, log_env=True):
+    def __init__(self, width, height, agent, sensor_noise_scale, n_prey, pk, n_steps, scenario, case, motion, visible_steps, multisensory, pc, pm=None, pe=None, log_env=True):
         self.width = width
         self.height = height
-        self.agnt = agnt
+        self.agent = agent
         self.sensor_noise_scale = sensor_noise_scale
         self.n_prey = n_prey
         self.prey_counter = n_prey
@@ -65,7 +65,7 @@ class PredatorTrial:
         """
         Initializes the environment grid, including sensory channels and environment boundaries.
         """
-        self.env = np.zeros((self.height, self.width, len(self.agnt.channels) + 1))
+        self.env = np.zeros((self.height, self.width, len(self.agent.channels) + 1))
         
         for r in range(self.height):
             for c in range(self.width):
@@ -76,8 +76,8 @@ class PredatorTrial:
 
         self.env = np.pad(self.env, pad_width=((self.pk_hw, self.pk_hw), (self.pk_hw, self.pk_hw), (0, 0)))
         self.env_log.append(np.copy(self.env))
-        self.agnt.sensor_noise_scale = self.sensor_noise_scale
-        self.agnt.reset()
+        self.agent.sensor_noise_scale = self.sensor_noise_scale
+        self.agent.reset()
         self.init_preys()
 
     def init_preys(self):
@@ -136,9 +136,7 @@ class PredatorTrial:
                 self.env_log.append(np.copy(self.env))
 
             visible = False if self.visible_steps < time else True
-
-            location, reward = self.agnt.training_act(self.env_log[-1], prey_locations, prey_directions, self.pm, visible) 
-            
+            location, reward = self.agent.training_act(self.env_log[-1], prey_locations, prey_directions, self.pm, visible) 
             training_trial_data['path'].append(location)
             training_trial_data['rewards'].append(reward)
             training_trial_data['prey_locations'].append(prey_locations)
@@ -162,7 +160,7 @@ class PredatorTrial:
             if self.log_env:
                 self.env_log.append(np.copy(self.env))
 
-            location = self.agnt.act(self.env_log[-1], prey_locations, prey_directions,  self.pm) 
+            location = self.agent.act(self.env_log[-1], prey_locations, prey_directions,  self.pm) 
             test_trial_data['path'].append(location)
             test_trial_data['prey_locations'].append(prey_locations)
         test_trial_data['prey'] = self.preys
@@ -170,7 +168,7 @@ class PredatorTrial:
 
         return test_trial_data
 
-    def process_preys(self, time):
+    def process_preys(self, time, move=True):
         """
         Processes prey movement, updates prey locations, and checks if prey has been captured by the agent.
         
@@ -188,14 +186,14 @@ class PredatorTrial:
             if prey.state == 1:
                 prey_locations.append(prey.location.copy())
                 prey_directions.append(prey.direction)
-                if np.array_equal(prey.location, self.agnt.location):
+                if np.array_equal(prey.location, self.agent.location):
                     prey.state = 0
                     self.prey_counter -= 1
 
                     if self.scenario == 'Two Prey':
                         self.prey_counter = 0
                 else:
-                    if self.scenario != "Static" and np.random.rand() < self.pm:
+                    if self.scenario != "Static" and np.random.rand() < self.pm and move:
                         prey.move(self.env)
                     if prey.collision == 1:
                         self.prey_counter -= 1
@@ -247,14 +245,14 @@ class PredatorTrial:
         self.env[cue_top: cue_bottom, cue_left: cue_right, prey.cues[1]] += self.k2d_noise[:cue_bottom - cue_top, :cue_right - cue_left]
 
 
-class LinearPreyEvaluator:
+class RLLinearPreyEvaluator:
     """
     Evaluates the performance of a predator agent across multiple trials.
     
     Parameters:
     - width (int): Width of the environment grid.
     - height (int): Height of the environment grid.
-    - agnt (object): The agent object representing the predator.
+    - agent (object): The agent object representing the predator.
     - sensor_noise_scale (float): Scale for sensor noise for the agent.
     - n_prey (int): Number of prey in the trial.
     - pk (int): Size of the kernel for sensory processing.
@@ -276,10 +274,10 @@ class LinearPreyEvaluator:
     - calculate_optimal_length(): Computes the optimal length to capture prey based on case and movement probability.
     """
 
-    def __init__(self, width, height, agnt, sensor_noise_scale, n_prey, pk, n_steps, scenario, case, motion, visible_steps, multisensory, pc, pm=None, pe=None):
+    def __init__(self, width, height, agent, sensor_noise_scale, n_prey, pk, n_steps, scenario, case, motion, visible_steps, multisensory, pc, pm=None, pe=None):
         self.width = width
         self.height = height
-        self.agnt = agnt
+        self.agent = agent
         self.sensor_noise_scale = sensor_noise_scale
         self.n_prey = n_prey
         self.pk = pk
@@ -307,25 +305,28 @@ class LinearPreyEvaluator:
         visible_steps_range = (1, 30) if not curriculum else (25, 30)
         total_length = 0
         optimal_length = 0
+        disappearing = self.visible_steps is None
 
         for trial in tqdm(range(training_trials)):
-            disappearing = False
+            # disappearing = False
             if self.scenario == 'Constant':
                 self.case = str(np.random.randint(1, 4))
                 # self.pm = np.random.rand()
                 self.pm = np.random.uniform(pm_range[0], pm_range[1])
-            if self.visible_steps is None and trial == 0:
-                disappearing = True
+            # if self.visible_steps is None and trial == 0:
+                # disappearing = True
 
             self.visible_steps = np.random.randint(visible_steps_range[0], visible_steps_range[1]) if disappearing else self.visible_steps
                 
-            self.training_trial = PredatorTrial(width=self.width, height=self.height, agnt=self.agnt, sensor_noise_scale=self.sensor_noise_scale, n_prey=self.n_prey, pk=self.pk, n_steps=self.n_steps, scenario=self.scenario, case=self.case, motion=self.motion, visible_steps=self.visible_steps, multisensory=self.multisensory, pc=self.pc, pm=self.pm, pe=self.pe)
+            self.training_trial = RLPredatorTrial(width=self.width, height=self.height, agent=self.agent, sensor_noise_scale=self.sensor_noise_scale, n_prey=self.n_prey, pk=self.pk, n_steps=self.n_steps, scenario=self.scenario, case=self.case, motion=self.motion, visible_steps=self.visible_steps, multisensory=self.multisensory, pc=self.pc, pm=self.pm, pe=self.pe)
             training_trial_data = self.training_trial.run_training_trial()
             self.training_trials[trial] = training_trial_data
             self.training_trials[trial]['prey_states'] = [prey.state for prey in self.training_trial.preys]
             self.trial_lengths.append(len(training_trial_data['path']))
-            self.agnt.cost_per_step = self.agnt.update_parameter(self.agnt.cost_per_step, 1.1, -50)
-
+            self.agent.cost_per_step = self.agent.update_parameter(self.agent.cost_per_step, 1.1, -50)
+            
+            # if trial % 5 == 0:
+            #     self.agent.update_target_network()
 
             if curriculum:
                 optimal_length += self.calculate_optimal_length(self.case, self.pm, training_trial_data['prey_locations'], training_trial_data['path'][0])
@@ -354,7 +355,7 @@ class LinearPreyEvaluator:
         - percentage_captured (bool): Plot percentage of prey captured.
         - animate (list): Animation options for trial visualization.
         """
-        self.agnt.produce_plots(training_lengths=training_lengths, first_5_last_5=first_5_last_5, percentage_captured=percentage_captured, animate=animate, trials=self.training_trials, trial_lengths=self.trial_lengths)
+        self.agent.produce_plots(training_lengths=training_lengths, first_5_last_5=first_5_last_5, percentage_captured=percentage_captured, animate=animate, trials=self.training_trials, trial_lengths=self.trial_lengths)
 
     def evaluate(self, n_trials, case, pm, visible_steps=100):
         """
@@ -375,7 +376,7 @@ class LinearPreyEvaluator:
         self.visible_steps = visible_steps
         
         for trial in range(n_trials):
-            test_trial = PredatorTrial(width=self.width, height=self.height, agnt=self.agnt, sensor_noise_scale=self.sensor_noise_scale, n_prey=self.n_prey, pk=self.pk, n_steps=self.n_steps, scenario=self.scenario, case=case, motion=self.motion, visible_steps=self.visible_steps, multisensory=self.multisensory, pc=self.pc, pm=pm, pe=self.pe)
+            test_trial = RLPredatorTrial(width=self.width, height=self.height, agent=self.agent, sensor_noise_scale=self.sensor_noise_scale, n_prey=self.n_prey, pk=self.pk, n_steps=self.n_steps, scenario=self.scenario, case=case, motion=self.motion, visible_steps=self.visible_steps, multisensory=self.multisensory, pc=self.pc, pm=pm, pe=self.pe)
             test_trial_data = test_trial.run_trial()
             self.test_trials[trial] = test_trial_data
             
@@ -434,3 +435,4 @@ class LinearPreyEvaluator:
             optimal_length += (distance + int(distance * pm)) if case != "2" else (distance - int(distance * pm))
 
         return optimal_length
+    
