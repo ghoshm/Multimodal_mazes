@@ -4,6 +4,7 @@ from multimodal_mazes.agents.agent_regress import AgentRegress
 from multimodal_mazes.agents.agent_random import AgentRandom
 from multimodal_mazes.agents.agent_rulebased import AgentRuleBased
 from multimodal_mazes.agents.agent_rulebased_memory import AgentRuleBasedMemory
+from multimodal_mazes.agents.agent_dqn import AgentDQN
 from multimodal_mazes.mazes.maze_env import Maze
 from multimodal_mazes.mazes.track_maze import TrackMaze
 from multimodal_mazes.mazes.h_maze import HMaze
