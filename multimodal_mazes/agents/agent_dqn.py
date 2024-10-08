@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from multimodal_mazes.agents.agent import Agent
+from tqdm import tqdm
 
 
 class AgentDQN(nn.Module, Agent):
@@ -44,11 +45,15 @@ class AgentDQN(nn.Module, Agent):
 
         # Lateral
         if wm_flags[0]:
-            self.input_to_input = nn.Linear(self.n_input_units, self.n_input_units)
+            self.input_to_input = nn.Linear(
+                self.n_input_units, self.n_input_units, bias=False
+            )
         if wm_flags[1]:
             self.hidden_to_hidden = nn.Linear(self.n_hidden_units, self.n_hidden_units)
         if wm_flags[2]:
-            self.output_to_output = nn.Linear(self.n_output_units, self.n_output_units)
+            self.output_to_output = nn.Linear(
+                self.n_output_units, self.n_output_units, bias=False
+            )
 
         # Skip
         if wm_flags[3]:
@@ -62,17 +67,20 @@ class AgentDQN(nn.Module, Agent):
         if wm_flags[6]:
             self.output_to_hidden = nn.Linear(self.n_output_units, self.n_hidden_units)
 
-    def policy(self, epsilon=0.0):
+    def policy(self):
         """
         Assign a value to each action.
         AgentDQN policy is a pass through a neural network.
         """
-        pass
+        with torch.no_grad():
 
-        # Could use forward to set self.outputs
+            self.outputs, self.prev_input, self.hidden, self.prev_output = self.forward(
+                self.prev_input, self.hidden, self.prev_output
+            )
 
     def forward(self, prev_input, hidden, prev_output):
         """ """
+        # torch.autograd.set_detect_anomaly(True)
 
         # Input
         new_input = torch.from_numpy(self.channel_inputs.reshape(-1)).to(torch.float32)
@@ -97,6 +105,7 @@ class AgentDQN(nn.Module, Agent):
             output = output + self.output_to_output(prev_output)
         if self.wm_flags[3]:  # Skip
             output = output + self.input_to_output(new_input)
+        output = torch.nn.Softmax()(output)
 
         return output, new_input, new_hidden, output
 
@@ -109,8 +118,9 @@ class AgentDQN(nn.Module, Agent):
             np.linspace(start=0.95, stop=0.25, num=10), repeats=len(maze.mazes) // 10
         )
 
-        for n in np.random.permutation(len(maze.mazes)):
-            # if np.array_equal([5, 1], maze.goal_locations[n]):  # TEMP
+        self.gradient_norms = []
+
+        for n in tqdm(np.random.permutation(len(maze.mazes))):
 
             # Reset agent
             prev_input = torch.zeros(self.n_input_units)
@@ -119,6 +129,8 @@ class AgentDQN(nn.Module, Agent):
 
             self.location = np.copy(maze.start_locations[n])
             self.outputs = torch.zeros(self.n_output_units)
+
+            loss = 0.0
 
             # Starting reward
             starting_reward = (
@@ -145,7 +157,7 @@ class AgentDQN(nn.Module, Agent):
 
                 # Predicted Q-value
                 q_values, prev_input, hidden, prev_output = self.forward(
-                    prev_input, hidden, prev_output
+                    prev_input.detach(), hidden.detach(), prev_output.detach()
                 )
                 predicted = q_values[action]
 
@@ -163,6 +175,7 @@ class AgentDQN(nn.Module, Agent):
                 reward *= 2
 
                 # Target Q-value
+                self.sense(maze.mazes[n])
                 with torch.no_grad():
                     next_q_values, _, _, _ = self.forward(
                         prev_input, hidden, prev_output
@@ -170,12 +183,24 @@ class AgentDQN(nn.Module, Agent):
                     target = reward + (gamma * torch.max(next_q_values)) - 0.1
 
                 # Loss
-                loss = criterion(predicted, target)
-
-                # Backpropagation
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                loss = loss + criterion(predicted, target)
 
                 if np.array_equal(self.location, maze.goal_locations[n]):
                     break
+
+            # Backpropagation
+            optimizer.zero_grad()
+            loss.backward()
+
+            # Check for exploding gradients
+            torch.nn.utils.clip_grad_norm_(self.parameters(), 10)
+
+            with torch.no_grad():
+                total_norm = 0
+                for p in self.parameters():
+                    param_norm = p.grad.data.norm(2)
+                    total_norm += param_norm.item() ** 2
+                total_norm = total_norm ** (1.0 / 2)
+                self.gradient_norms.append(total_norm)
+
+            optimizer.step()

@@ -2,6 +2,7 @@
 
 import numpy as np
 import multimodal_mazes
+import torch
 
 
 def maze_trial(
@@ -44,6 +45,15 @@ def maze_trial(
             genome=genome,
             config=config,
         )
+
+    elif agnt.type == "AgentDQN":
+        agnt.prev_input = torch.zeros(agnt.n_input_units)
+        agnt.hidden = torch.zeros(agnt.n_hidden_units)
+        agnt.prev_output = torch.zeros(agnt.n_output_units)
+
+        agnt.location = np.copy(mz_start_loc)
+        agnt.outputs = torch.zeros(agnt.n_output_units)
+
     else:
         agnt.location = np.copy(mz_start_loc)
         agnt.sensor_noise_scale = sensor_noise_scale
