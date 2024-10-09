@@ -49,7 +49,9 @@ class AgentDQN(nn.Module, Agent):
                 self.n_input_units, self.n_input_units, bias=False
             )
         if wm_flags[1]:
-            self.hidden_to_hidden = nn.Linear(self.n_hidden_units, self.n_hidden_units)
+            self.hidden_to_hidden = nn.Linear(
+                self.n_hidden_units, self.n_hidden_units, bias=False
+            )
         if wm_flags[2]:
             self.output_to_output = nn.Linear(
                 self.n_output_units, self.n_output_units, bias=False
@@ -57,15 +59,23 @@ class AgentDQN(nn.Module, Agent):
 
         # Skip
         if wm_flags[3]:
-            self.input_to_output = nn.Linear(self.n_input_units, self.n_output_units)
+            self.input_to_output = nn.Linear(
+                self.n_input_units, self.n_output_units, bias=False
+            )
         if wm_flags[4]:
-            self.output_to_input = nn.Linear(self.n_output_units, self.n_input_units)
+            self.output_to_input = nn.Linear(
+                self.n_output_units, self.n_input_units, bias=False
+            )
 
         # Feedback
         if wm_flags[5]:
-            self.hidden_to_input = nn.Linear(self.n_hidden_units, self.n_input_units)
+            self.hidden_to_input = nn.Linear(
+                self.n_hidden_units, self.n_input_units, bias=False
+            )
         if wm_flags[6]:
-            self.output_to_hidden = nn.Linear(self.n_output_units, self.n_hidden_units)
+            self.output_to_hidden = nn.Linear(
+                self.n_output_units, self.n_hidden_units, bias=False
+            )
 
     def policy(self):
         """
@@ -105,7 +115,9 @@ class AgentDQN(nn.Module, Agent):
             output = output + self.output_to_output(prev_output)
         if self.wm_flags[3]:  # Skip
             output = output + self.input_to_output(new_input)
-        output = torch.nn.Softmax()(output)
+        output = torch.nn.Softmax(dim=0)(output)
+
+        # Should add small amounts of noise to output to avoid argmax problem?
 
         return output, new_input, new_hidden, output
 
@@ -120,7 +132,7 @@ class AgentDQN(nn.Module, Agent):
 
         self.gradient_norms = []
 
-        for n in tqdm(np.random.permutation(len(maze.mazes))):
+        for n in np.random.permutation(len(maze.mazes)):
 
             # Reset agent
             prev_input = torch.zeros(self.n_input_units)

@@ -53,6 +53,7 @@ def maze_trial(
 
         agnt.location = np.copy(mz_start_loc)
         agnt.outputs = torch.zeros(agnt.n_output_units)
+        agnt.sensor_noise_scale = sensor_noise_scale
 
     else:
         agnt.location = np.copy(mz_start_loc)
