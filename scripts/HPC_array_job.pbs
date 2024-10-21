@@ -1,11 +1,11 @@
 #!/bin/bash  
 #PBS -l select=1:ncpus=1:mem=2gb
 #PBS -l walltime=24:00:00
-#PBS -J 1-10
+#PBS -J 1-129
 
 cd $PBS_O_WORKDIR
 
 module load anaconda3/personal
 source activate Multimodal_mazes
 
-python predator_exp.py
+python DQN_exp.py

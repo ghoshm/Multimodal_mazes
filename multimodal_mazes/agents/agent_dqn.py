@@ -18,8 +18,8 @@ class AgentDQN(nn.Module, Agent):
             location: initial position [r,c].
             channels: list of active (1) and inative (0) channels e.g. [0,1].
             sensor_noise_scale: the scale of the noise applied to every sensor.
-            wm_flags:
-        Properties:
+            n_hidden_units: the number of units in the hidden layer.
+            wm_flags: a 7 element binary vector, which includes or excludes each additional weight matrix.
         """
 
         # Set up
@@ -89,7 +89,19 @@ class AgentDQN(nn.Module, Agent):
             )
 
     def forward(self, prev_input, hidden, prev_output):
-        """ """
+        """
+        Performs a forward pass through a DQN model.
+            Note: input activations at t, come from self.
+        Arguments:
+            prev_input: input activations at t-1.
+            hidden: hidden activations at t-1.
+            prev_output: output activations at t-1.
+        Returns:
+            output: output activations at t [used as q-values].
+            new_input: input activations at t.
+            new_hidden: hidden activations at t.
+            output: output activations at t.
+        """
         # torch.autograd.set_detect_anomaly(True)
 
         # Input
@@ -115,14 +127,20 @@ class AgentDQN(nn.Module, Agent):
             output = output + self.output_to_output(prev_output)
         if self.wm_flags[3]:  # Skip
             output = output + self.input_to_output(new_input)
+        output = output + torch.rand(len(output)) / 1000
         output = torch.nn.Softmax(dim=0)(output)
-
-        # Should add small amounts of noise to output to avoid argmax problem?
 
         return output, new_input, new_hidden, output
 
     def generate_policy(self, maze, n_steps):
-        """ """
+        """
+        Uses deep Q-learning to optimise model weights.
+        Arguments:
+            maze: a class containing a set of mazes.
+            n_steps: number of simulation steps.
+        Updates:
+            self.parameters.
+        """
         optimizer = optim.Adam(self.parameters(), lr=0.001)
         criterion = nn.MSELoss()
         gamma = 0.9
@@ -204,15 +222,16 @@ class AgentDQN(nn.Module, Agent):
             optimizer.zero_grad()
             loss.backward()
 
-            # Check for exploding gradients
+            # Clip gradients
             torch.nn.utils.clip_grad_norm_(self.parameters(), 10)
 
-            with torch.no_grad():
-                total_norm = 0
-                for p in self.parameters():
-                    param_norm = p.grad.data.norm(2)
-                    total_norm += param_norm.item() ** 2
-                total_norm = total_norm ** (1.0 / 2)
-                self.gradient_norms.append(total_norm)
+            # Check for exploding gradients
+            # with torch.no_grad():
+            #     total_norm = 0
+            #     for p in self.parameters():
+            #         param_norm = p.grad.data.norm(2)
+            #         total_norm += param_norm.item() ** 2
+            #     total_norm = total_norm ** (1.0 / 2)
+            #     self.gradient_norms.append(total_norm)
 
             optimizer.step()
