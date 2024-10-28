@@ -7,6 +7,8 @@ import torch.optim as optim
 from multimodal_mazes.agents.agent import Agent
 from tqdm import tqdm
 
+# See below for a draft of more flexible version
+
 
 class AgentDQN(nn.Module, Agent):
     def __init__(
@@ -235,3 +237,28 @@ class AgentDQN(nn.Module, Agent):
             #     self.gradient_norms.append(total_norm)
 
             optimizer.step()
+
+
+# Idea for an agent with a more flexible architecture
+# layers = {'input': nb_input, 'hidden': nb_hidden, 'output': nb_output}
+# connection_keys = {('input', 'hidden'), ('hidden', 'output')}
+# self.connections = dict()
+# # sanity check:
+# for c_in, c_out in connection_keys:
+#   self.connections[c_in, c_out] = x = nn.Linear(layers[c_in], layers[c_out])
+#   setattr(self, c_in+'_to_'+c_out, x)
+
+
+# all_connection_types = [(c_in, c_out) for c_in in layers.keys() for c_out in layers.keys()]
+# # itertools.combinations might not be the right function! iterate over all subsets is the idea
+# all_specifications = [spec for spec in itertools.combinations(all_connection_types) if validate(spec)]
+
+# def validate(connection_type, layers):
+#   if ('input', 'hidden') in connection_type and ('hidden', 'output') in connection_type:
+#     return True
+#   else:
+#     return False
+
+# def validate(connection_type, layers):
+#   pass # check if there is a path from 'input' to 'output'
+#   # check this, but also check that every layer is used

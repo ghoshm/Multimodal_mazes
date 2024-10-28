@@ -15,7 +15,7 @@ def run_exp(job_index, exp_config):
         job_index: an int which will define the DQN architecture.
         exp_config: loaded hyperparameters.
     Returns:
-        results: the trained models fitness vs noise on testing.
+        agnt: the trained model (and it's test results).
     """
     # Set up
     noises = np.linspace(start=0.0, stop=0.5, num=21)
