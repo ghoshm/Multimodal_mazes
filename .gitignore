@@ -4,6 +4,8 @@ __pycache__/
 # Results 
 Results/
 results/
+elogs/
+ologs/
 
 # Egg info
 multimodal_mazes.egg-info/
