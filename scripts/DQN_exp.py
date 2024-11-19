@@ -3,6 +3,7 @@
 import numpy as np
 import itertools
 import os
+import re
 import shutil
 import pickle
 import multimodal_mazes
@@ -90,16 +91,17 @@ if __name__ == "__main__":
     exp_config = multimodal_mazes.load_exp_config("../exp_config.ini")
 
     # Create save folder
-    os.makedirs(os.environ["PBS_JOBID"], exist_ok=True)
+    save_folder = "../results/" + re.sub(r"\[.*?\]", "", os.environ["PBS_JOBID"])
+    os.makedirs(save_folder, exist_ok=True)
 
     # Copy config files to save folder
-    shutil.copyfile("../exp_config.ini", os.environ["PBS_JOBID"] + "/exp_config.ini")
+    shutil.copyfile("../exp_config.ini", save_folder + "/exp_config.ini")
 
     # Run
     job_index = int(os.environ["PBS_ARRAY_INDEX"]) - 1  # array job
     agnt = run_exp(job_index=job_index, exp_config=exp_config)
 
     # Save results
-    save_path = os.environ["PBS_JOBID"] + "/" + str(job_index)
+    save_path = save_folder + "/" + str(job_index)
     with open(save_path + ".pickle", "wb") as file:
         pickle.dump(agnt, file)
