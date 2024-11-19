@@ -90,16 +90,16 @@ if __name__ == "__main__":
     exp_config = multimodal_mazes.load_exp_config("../exp_config.ini")
 
     # Create save folder
-    os.makedirs(exp_config["save_path"], exist_ok=True)
+    os.makedirs(os.environ["PBS_JOBID"], exist_ok=True)
 
     # Copy config files to save folder
-    shutil.copyfile("../exp_config.ini", exp_config["save_path"] + "/exp_config.ini")
+    shutil.copyfile("../exp_config.ini", os.environ["PBS_JOBID"] + "/exp_config.ini")
 
     # Run
     job_index = int(os.environ["PBS_ARRAY_INDEX"]) - 1  # array job
     agnt = run_exp(job_index=job_index, exp_config=exp_config)
 
     # Save results
-    save_path = exp_config["save_path"] + "/" + str(job_index)
+    save_path = os.environ["PBS_JOBID"] + "/" + str(job_index)
     with open(save_path + ".pickle", "wb") as file:
         pickle.dump(agnt, file)
