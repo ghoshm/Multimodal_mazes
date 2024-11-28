@@ -297,3 +297,70 @@ def unique_legend(ax, order, loc):
     if order is not None:
         unique = [unique[i] for i in order]
     ax.legend(*zip(*unique), frameon=False, loc=loc)
+
+
+def plot_dqn_architecture(wm_flag):
+    """
+    Plots a dqn architecture.
+    Arguments:
+        wm_flag: a 7 element binary vector, which includes or excludes each additional weight matrix.
+    """
+    # F0 and F1
+    plt.scatter(x=[0, 1, 2], y=[1, 1, 1], color="xkcd:slate grey", zorder=1)
+    plt.plot([0, 2], [1, 1], color="xkcd:slate grey", zorder=1)
+    plt.arrow(
+        0.35, 1, dx=0.1, dy=0.0, width=0.0, head_width=0.1, color="xkcd:slate grey"
+    )
+    plt.arrow(
+        1.35, 1, dx=0.1, dy=0.0, width=0.0, head_width=0.1, color="xkcd:slate grey"
+    )
+
+    # L0, L1, L2
+    for l in range(3):
+        if wm_flag[l]:
+            plt.plot([l, l], [0.75, 1.25], color="xkcd:teal blue", zorder=0)
+            plt.arrow(
+                l,
+                0.9,
+                dx=0.0,
+                dy=-0.1,
+                width=0.0,
+                head_width=0.1,
+                color="xkcd:teal blue",
+            )
+            plt.arrow(
+                l,
+                1.1,
+                dx=0.0,
+                dy=0.1,
+                width=0.0,
+                head_width=0.1,
+                color="xkcd:teal blue",
+            )
+
+    if wm_flag[3]:  # S0
+        plt.plot([0.1, 1.9], [1.5, 1.5], color="xkcd:topaz", zorder=0)
+        plt.arrow(
+            0.85, 1.5, dx=0.1, dy=0.0, width=0.0, head_width=0.1, color="xkcd:topaz"
+        )
+
+    if wm_flag[4]:  # S1
+        plt.plot([0.1, 1.9], [0.5, 0.5], color="xkcd:topaz", zorder=0)
+        plt.arrow(
+            1.15, 0.5, dx=-0.1, dy=0.0, width=0.0, head_width=0.1, color="xkcd:topaz"
+        )
+
+    if wm_flag[5]:  # B0
+        plt.plot([0.1, 0.9], [1.25, 1.25], color="xkcd:orange", zorder=0)
+        plt.arrow(
+            0.67, 1.25, dx=-0.1, dy=0.0, width=0.0, head_width=0.1, color="xkcd:orange"
+        )
+
+    if wm_flag[6]:  # B1
+        plt.plot([1.1, 1.9], [0.75, 0.75], color="xkcd:orange", zorder=0)
+        plt.arrow(
+            1.67, 0.75, dx=-0.1, dy=0.0, width=0.0, head_width=0.1, color="xkcd:orange"
+        )
+
+    plt.ylim([0.25, 1.75])
+    plt.axis("off")

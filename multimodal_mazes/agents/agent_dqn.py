@@ -90,7 +90,7 @@ class AgentDQN(nn.Module, Agent):
                 self.prev_input, self.hidden, self.prev_output
             )
 
-    def forward(self, prev_input, hidden, prev_output):
+    def forward(self, prev_input, hidden, prev_output, tensor_input=False):
         """
         Performs a forward pass through a DQN model.
             Note: input activations at t, come from self.
@@ -107,7 +107,13 @@ class AgentDQN(nn.Module, Agent):
         # torch.autograd.set_detect_anomaly(True)
 
         # Input
-        new_input = torch.from_numpy(self.channel_inputs.reshape(-1)).to(torch.float32)
+        if tensor_input == False:
+            new_input = torch.from_numpy(self.channel_inputs.reshape(-1)).to(
+                torch.float32
+            )
+        elif tensor_input == True:
+            new_input = self.channel_inputs
+
         if self.wm_flags[0]:  # Lateral
             new_input = new_input + self.input_to_input(prev_input)
         if self.wm_flags[4]:  # Skip
