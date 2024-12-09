@@ -16,6 +16,7 @@ def maze_trial(
     agnt=None,
     genome=None,
     config=None,
+    record_states=False,
 ):
     """
     Tests a single agent on a single maze.
@@ -55,6 +56,9 @@ def maze_trial(
         agnt.outputs = torch.zeros(agnt.n_output_units)
         agnt.sensor_noise_scale = sensor_noise_scale
 
+        if record_states:
+            states = []
+
     else:
         agnt.location = np.copy(mz_start_loc)
         agnt.sensor_noise_scale = sensor_noise_scale
@@ -69,6 +73,17 @@ def maze_trial(
     # Sensation-action loop
     for time in range(n_steps):
         agnt.sense(mz)
+        if record_states:
+            states.append(
+                (
+                    torch.from_numpy(agnt.channel_inputs.reshape(-1))
+                    .to(torch.float32)
+                    .requires_grad_(False),
+                    agnt.prev_input.detach().clone(),
+                    agnt.hidden.detach().clone(),
+                    agnt.prev_output.detach().clone(),
+                )
+            )
         agnt.policy()
         agnt.act(mz)
 
@@ -77,7 +92,10 @@ def maze_trial(
         if np.array_equal(agnt.location, mz_goal_loc):
             break
 
-    return time, path  # returning a class would be more flexible
+    if record_states == False:
+        return time, path
+    elif record_states == True:
+        return time, path, states
 
 
 def eval_fitness(
