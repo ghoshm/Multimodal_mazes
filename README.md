@@ -15,6 +15,7 @@ Note that you may need to pip install some packages (e.g. [neat-python](https://
 
 3. Finally, install the multimodal mazes package itself, by running: 
 ```
+conda activate Multimodal_mazes
 pip install -e . 
 ```
 
@@ -22,7 +23,7 @@ pip install -e .
 
 Broadly, the library consists of **tasks** and **agents**. 
 
-Note that the notebooks in scripts (*.ipynb*) are intended for analysis and working, and may not run from start to finish.   
+Note that the notebooks (*.ipynb*) in scripts  are intended for analysis and working, and may not run from start to finish.   
 
 ### Tasks 
 
@@ -87,7 +88,12 @@ To train a neural network to perform a task, the library supports using either:
 
 * DQN - to learn the weights for a given network architecture. 
 
-In each of these cases: open a terminal, change into the *scripts* folder and then run either: *maze_exp.py* (NEAT) or *DQN_exp.py* (DQN).
+In each of these cases: open a terminal, change into the *scripts* folder and then run either:
+
+```
+ python maze_exp.py 
+ python DQN_exp.py 
+```
 
 Both:
 * Read configuration files: NEAT - *neat_config.ini* and *exp_config.ini*. DQN - *../exp_config.ini*. 
