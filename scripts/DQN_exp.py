@@ -66,7 +66,7 @@ def run_exp(job_index, exp_config):
     agnt.n_parameters = n_parameters
 
     # Train
-    agnt.generate_policy(maze, n_steps=exp_config["n_steps"])
+    agnt.generate_policy(maze=maze, n_steps=exp_config["n_steps"], maze_test=maze_test)
 
     # Test
     for a, noise in enumerate(noises):

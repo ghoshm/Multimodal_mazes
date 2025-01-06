@@ -35,6 +35,9 @@ def maze_trial(
         time: the number of steps taken to solve the maze.
               Returns n_steps-1 if the agent fails.
         path: a list with the agent's location at each time step [r,c].
+        states: a list of the agent's states at each time step.
+            Each entry is a tuple storing tensors of:
+            inputs, prev_inputs, hidden, prev_outputs, outputs.
     """
     # Reset agent
     if agnt is None:
@@ -85,6 +88,8 @@ def maze_trial(
                 )
             )
         agnt.policy()
+        if record_states:
+            states[-1] += tuple([agnt.outputs.detach().clone()])
         agnt.act(mz)
 
         path.append(list(agnt.location))

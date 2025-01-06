@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import multimodal_mazes
 from multimodal_mazes.agents.agent import Agent
 from tqdm import tqdm
 
@@ -98,6 +99,8 @@ class AgentDQN(nn.Module, Agent):
             prev_input: input activations at t-1.
             hidden: hidden activations at t-1.
             prev_output: output activations at t-1.
+            tensor_input: set to true if you need to input tensors,
+                instead of numpy arrays.
         Returns:
             output: output activations at t [used as q-values].
             new_input: input activations at t.
@@ -140,12 +143,14 @@ class AgentDQN(nn.Module, Agent):
 
         return output, new_input, new_hidden, output
 
-    def generate_policy(self, maze, n_steps):
+    def generate_policy(self, maze, n_steps, maze_test=None):
         """
         Uses deep Q-learning to optimise model weights.
         Arguments:
             maze: a class containing a set of mazes.
             n_steps: number of simulation steps.
+            maze_test: a class containing a set of mazes.
+                Used to record the agent's fitness 100 times throughout training.
         Updates:
             self.parameters.
         """
@@ -157,8 +162,24 @@ class AgentDQN(nn.Module, Agent):
         )
 
         self.gradient_norms = []
+        self.training_fitness = []
 
-        for n in np.random.permutation(len(maze.mazes)):
+        for a, n in enumerate(np.random.permutation(len(maze.mazes))):
+
+            # Record fitness
+            if (a % (len(maze.mazes) // 100) == 0) & (maze_test != None):
+                with torch.no_grad():
+                    fitness = multimodal_mazes.eval_fitness(
+                        genome=None,
+                        config=None,
+                        channels=self.channels,
+                        sensor_noise_scale=self.sensor_noise_scale,
+                        drop_connect_p=0.0,
+                        maze=maze_test,
+                        n_steps=n_steps,
+                        agnt=self,
+                    )
+                    self.training_fitness.append(fitness)
 
             # Reset agent
             prev_input = torch.zeros(self.n_input_units)
