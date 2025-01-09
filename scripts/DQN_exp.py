@@ -25,8 +25,6 @@ def run_exp(job_index, exp_config):
     wm_flags = np.vstack((wm_flags[0], wm_flags))
     wm_flag = wm_flags[job_index]
 
-    results = np.zeros(len(noises))
-
     # Generate mazes
     maze = multimodal_mazes.TrackMaze(
         size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
@@ -69,19 +67,17 @@ def run_exp(job_index, exp_config):
     agnt.generate_policy(maze=maze, n_steps=exp_config["n_steps"], maze_test=maze_test)
 
     # Test
-    for a, noise in enumerate(noises):
-        results[a] = multimodal_mazes.eval_fitness(
-            genome=None,
-            config=None,
-            channels=exp_config["channels"],
-            sensor_noise_scale=noise,
-            drop_connect_p=0.0,
-            maze=maze_test,
-            n_steps=exp_config["n_steps"],
-            agnt=agnt,
-        )
+    results, input_sensitivity, memory = multimodal_mazes.test_dqn_agent(
+        maze_test=maze_test,
+        agnt=agnt,
+        exp_config=exp_config,
+        noises=noises,
+    )
 
-    agnt.results = np.copy(results)
+    # Store
+    agnt.results = results
+    agnt.input_sensitivity = input_sensitivity
+    agnt.memory = memory
 
     return agnt
 

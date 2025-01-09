@@ -153,6 +153,7 @@ class AgentDQN(nn.Module, Agent):
                 Used to record the agent's fitness 100 times throughout training.
         Updates:
             self.parameters.
+            self.training_fitness (if maze_test is provided).
         """
         optimizer = optim.Adam(self.parameters(), lr=0.001)
         criterion = nn.MSELoss()

@@ -28,9 +28,11 @@ def maze_trial(
         channels: list of active (1) and inative (0) channels e.g. [0,1].
         sensor_noise_scale: the scale of the noise applied to every sensor.
         drop_connect_p: the probability of edge drop out, per time step.
+        n_steps: number of simulation steps.
+        agnt: an instance of an agent.
         genome: neat generated genome.
         config: the neat configuration holder.
-        n_steps: number of simulation steps.
+        record_states: set true to return states.
     Returns:
         time: the number of steps taken to solve the maze.
               Returns n_steps-1 if the agent fails.
@@ -112,6 +114,7 @@ def eval_fitness(
     maze,
     n_steps,
     agnt=None,
+    record_states=False,
 ):
     """
     Evalutes the fitness of the provided genome across a set of mazes.
@@ -123,14 +126,18 @@ def eval_fitness(
         drop_connect_p: the probability of edge drop out, per time step.
         maze: a class containing a set of mazes.
         n_steps: the max number of simulation steps per maze.
+        agnt: an instance of an agent.
+        record_states: will record the agents states when true.
     Returns:
         fitness: the mean fitness across mazes, between [0,1].
+        all_states: a list containing a list per trial; each of which
+            contains a tuple per time point of the agent's states.
     """
-    fitness, times, paths = [], [], []
+    fitness, times, paths, all_states = [], [], [], []
     # For each maze
     for mz_n, mz in enumerate(maze.mazes):
         # Run trial
-        time, path = multimodal_mazes.maze_trial(
+        trial_results = multimodal_mazes.maze_trial(
             mz=mz,
             mz_start_loc=maze.start_locations[mz_n],
             mz_goal_loc=maze.goal_locations[mz_n],
@@ -141,7 +148,14 @@ def eval_fitness(
             agnt=agnt,
             genome=genome,
             config=config,
+            record_states=record_states,
         )
+
+        if record_states == False:
+            time, path = trial_results
+        elif record_states == True:
+            time, path, states = trial_results
+            all_states.append(states)
 
         # Record normalised fitness
         times.append(
@@ -161,7 +175,10 @@ def eval_fitness(
     fitness = (np.array(times) + np.array(paths)) * 0.5
 
     # Return fitness
-    return np.array(fitness).mean()
+    if record_states == False:
+        return np.array(fitness).mean()
+    elif record_states == True:
+        return np.array(fitness).mean(), all_states
 
 
 def id_top_agents(fitness_cutoff, exp_data, maze, exp_config, genomes, config):

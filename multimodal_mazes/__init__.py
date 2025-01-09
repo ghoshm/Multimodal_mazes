@@ -46,3 +46,8 @@ from multimodal_mazes.predator_prey.predator_trial import (
     eval_predator_fitness,
     prey_params_search,
 )
+from multimodal_mazes.analysis.DQN_analysis import (
+    calculate_dqn_input_sensitivity,
+    estimate_dqn_memory,
+    test_dqn_agent,
+)
