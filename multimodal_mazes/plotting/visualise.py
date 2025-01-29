@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from matplotlib.markers import MarkerStyle
 from netgraph import Graph
+import seaborn as sns
 import multimodal_mazes
-
 
 plt.style.use("../multimodal_mazes/plotting/style_sheet.mplstyle")
 
@@ -299,11 +299,13 @@ def unique_legend(ax, order, loc):
     ax.legend(*zip(*unique), frameon=False, loc=loc)
 
 
-def plot_dqn_architecture(wm_flag):
+def plot_dqn_architecture(wm_flag, ax=None, color=None):
     """
     Plots a dqn architecture.
     Arguments:
         wm_flag: a 7 element binary vector, which includes or excludes each additional weight matrix.
+        ax: a matplotlib axis (only needed if a color is provided)
+        color: when provided, the whole architecture will be drawn with one color.
     """
     # F0 and F1
     plt.scatter(x=[0, 1, 2], y=[1, 1, 1], color="xkcd:slate grey", zorder=1)
@@ -364,3 +366,73 @@ def plot_dqn_architecture(wm_flag):
 
     plt.ylim([0.25, 1.75])
     plt.axis("off")
+
+    if color:
+        for line in ax.get_lines():
+            line.set_color(color)
+
+        for patch in ax.patches:
+            patch.set_facecolor(color)
+            patch.set_edgecolor(color)
+
+        for path_collection in ax.collections:
+            path_collection.set_facecolor(color)
+            path_collection.set_edgecolor(color)
+
+
+def plot_dqn_rankings(y, y_label, interest, i_cols, y_lim=None):
+    """
+    Meep
+    Arguments:
+        y: metric (architectures x repeats).
+        y_label:
+        interest:
+        i_cols:
+    """
+
+    idxs = np.argsort(np.nanmedian(y, axis=1))
+
+    fig, ax = plt.subplots(
+        nrows=1, ncols=129, figsize=(30, 5), sharex=True, sharey=True
+    )
+
+    for a, i in enumerate(idxs):
+        plt.sca(ax[a])
+
+        if i in interest:
+            sns.violinplot(
+                x=np.zeros(y.shape[1]),
+                y=y[i],
+                color=i_cols[np.where(interest == i)[0][0]],
+                linewidth=0,
+                inner=None,
+                cut=1,
+            )
+        else:
+            sns.violinplot(
+                x=np.zeros(y.shape[1]),
+                y=y[i],
+                color="xkcd:grey",
+                linewidth=0,
+                inner=None,
+                cut=1,
+            )
+
+        ax[a].set_xticks([])
+        ax[a].spines["bottom"].set_visible(False)
+
+        if a == 0:
+            plt.ylabel(y_label)
+            if y_lim:
+                plt.ylim(y_lim)
+        else:
+            ax[a].spines["left"].set_visible(False)
+            ax[a].tick_params(left=False, bottom=False)
+
+    # Plotting wm_flags
+    # plt.sca(ax[1])
+    # wm_f_labels = ['L0', 'L1', 'L2', 'S0', 'S1', 'B0', 'B1']
+    # for i in range(7):
+    #     plt.scatter(range(129), np.ones(129) * i, c=[(0, 0, 0, alpha) for alpha in np.nanmax(wm_flags, axis=2)[idxs,i]], s=5)
+    # plt.yticks(range(7), wm_f_labels)
+    # plt.xlabel('Architectures')
