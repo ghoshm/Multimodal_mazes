@@ -27,6 +27,7 @@ from multimodal_mazes.plotting.visualise import (
     unique_legend,
     plot_dqn_architecture,
     plot_dqn_rankings,
+    plot_dqn_examples,
 )
 from multimodal_mazes.analysis.architecture_analysis import (
     prune_architecture,

@@ -380,20 +380,25 @@ def plot_dqn_architecture(wm_flag, ax=None, color=None):
             path_collection.set_edgecolor(color)
 
 
-def plot_dqn_rankings(y, y_label, interest, i_cols, y_lim=None):
+def plot_dqn_rankings(y, y_label, interest, i_cols, y_lim=None, sig_test=False):
     """
-    Meep
+    Plot each architecture's distribution for a given metric.
+        Sorted by their median value.
     Arguments:
-        y: metric (architectures x repeats).
-        y_label:
-        interest:
-        i_cols:
+        y: metric - architectures x repeats.
+        y_label: y axis label.
+        interest: a list of architectures to highlight.
+        i_cols: a list of colors for the architectures of interest.
+        y_lim: y axis limits.
+        sig_test: if an architecture label (an int) is provided.
+            Test for significant differences between label and all other architectures.
+            Uses Mann-Whitney U, with correction for multiple comparions.
     """
 
     idxs = np.argsort(np.nanmedian(y, axis=1))
 
     fig, ax = plt.subplots(
-        nrows=1, ncols=129, figsize=(30, 5), sharex=True, sharey=True
+        nrows=1, ncols=y.shape[0], figsize=(30, 5), sharex=True, sharey=True
     )
 
     for a, i in enumerate(idxs):
@@ -406,7 +411,7 @@ def plot_dqn_rankings(y, y_label, interest, i_cols, y_lim=None):
                 color=i_cols[np.where(interest == i)[0][0]],
                 linewidth=0,
                 inner=None,
-                cut=1,
+                cut=0,
             )
         else:
             sns.violinplot(
@@ -415,7 +420,7 @@ def plot_dqn_rankings(y, y_label, interest, i_cols, y_lim=None):
                 color="xkcd:grey",
                 linewidth=0,
                 inner=None,
-                cut=1,
+                cut=0,
             )
 
         ax[a].set_xticks([])
@@ -429,10 +434,83 @@ def plot_dqn_rankings(y, y_label, interest, i_cols, y_lim=None):
             ax[a].spines["left"].set_visible(False)
             ax[a].tick_params(left=False, bottom=False)
 
-    # Plotting wm_flags
-    # plt.sca(ax[1])
-    # wm_f_labels = ['L0', 'L1', 'L2', 'S0', 'S1', 'B0', 'B1']
-    # for i in range(7):
-    #     plt.scatter(range(129), np.ones(129) * i, c=[(0, 0, 0, alpha) for alpha in np.nanmax(wm_flags, axis=2)[idxs,i]], s=5)
-    # plt.yticks(range(7), wm_f_labels)
-    # plt.xlabel('Architectures')
+    # Significance testing
+    if sig_test:
+        from scipy import stats
+
+        ps = []
+        for a, i in enumerate(idxs):
+            _, p = stats.mannwhitneyu(
+                x=y[sig_test], y=y[i], method="asymptotic", nan_policy="omit"
+            )
+            ps.append(p)
+
+        # Multiple comparions adjustment
+        ps = np.array(ps)
+        ps = stats.false_discovery_control(ps)
+
+        for a, i in enumerate(idxs):
+            if ps[a] < 0.05:
+                plt.sca(ax[a])
+                plt.scatter(
+                    x=0,
+                    y=max(y.reshape(-1)) + (0.1 * max(y.reshape(-1))),
+                    c=i_cols[np.where(np.array(interest) == sig_test)[0][0]],
+                    marker="$*$",
+                )
+
+
+def plot_dqn_examples(y, y_label, interest, i_cols, y_lim=None, sig_test=False):
+    """
+    Plot the overall distribution for a given metric,
+        And the distributions for the architectures in interest.
+    Arguments:
+        y: metric - architectures x repeats.
+        y_label: y axis label.
+        interest: a list of architectures to highlight.
+        i_cols: a list of colors for the interest architectures.
+        y_lim: y axis limits.
+        sig_test: if an architecture label (an int) is provided.
+            Test for significant differences between label and the architectures in interest.
+            Uses Mann-Whitney U.
+    """
+
+    import warnings
+
+    warnings.filterwarnings("ignore", module="seaborn")
+
+    fig, ax = plt.subplots(
+        nrows=1, ncols=len(interest) + 1, figsize=(5, 5), sharex=False, sharey=True
+    )
+
+    # Overall distribution
+    plt.sca(ax[0])
+    sns.violinplot(y.reshape(-1), color="w", linewidth=3, inner=None, cut=0)
+    ax[0].set_xticks([])
+    ax[0].spines["bottom"].set_visible(False)
+    plt.ylabel(y_label)
+    if y_lim:
+        plt.ylim(y_lim)
+
+    # Architectures of interest
+    for a, i in enumerate(interest):
+        plt.sca(ax[a + 1])
+        sns.swarmplot(y[i], color=i_cols[a])
+        plt.axis("off")
+
+    # Significance testing
+    if sig_test:
+        from scipy.stats import mannwhitneyu
+
+        for a, i in enumerate(interest):
+            _, p = mannwhitneyu(
+                x=y[sig_test], y=y[i], method="asymptotic", nan_policy="omit"
+            )
+            if p < 0.05:
+                plt.sca(ax[a + 1])
+                plt.scatter(
+                    x=0,
+                    y=max(y.reshape(-1)) + (0.1 * max(y.reshape(-1))),
+                    c=i_cols[np.where(np.array(interest) == sig_test)[0][0]],
+                    marker="$*$",
+                )
