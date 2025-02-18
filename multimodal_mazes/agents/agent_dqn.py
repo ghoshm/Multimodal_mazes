@@ -204,7 +204,7 @@ class AgentDQN(nn.Module, Agent):
                 self.sense(maze.mazes[n])
 
                 # Epsilon-greedy action selection
-                if torch.rand(1) < epsilons[n]:
+                if torch.rand(1) < epsilons[a]:
                     action = torch.randint(
                         low=0, high=self.n_output_units, size=(1,)
                     ).item()
