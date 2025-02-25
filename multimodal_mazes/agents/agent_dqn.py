@@ -38,47 +38,87 @@ class AgentDQN(nn.Module, Agent):
         self.n_hidden_units = n_hidden_units
         self.n_output_units = len(self.outputs)
 
+        # Number of connections to units in each layer
+        in_features = [0, self.n_input_units, self.n_hidden_units]
+
+        if wm_flags[0]:  # ii
+            in_features[0] += self.n_input_units
+
+        if wm_flags[1]:  # hh
+            in_features[1] += self.n_hidden_units
+
+        if wm_flags[2]:  ## oo
+            in_features[2] += self.n_output_units
+
+        if wm_flags[3]:  # io
+            in_features[2] += self.n_input_units
+
+        if wm_flags[4]:  # oi
+            in_features[0] += self.n_output_units
+
+        if wm_flags[5]:  # hi
+            in_features[0] += self.n_hidden_units
+
+        if wm_flags[6]:  # oh
+            in_features[1] += self.n_output_units
+
+        self.ks = np.sqrt(1 / np.array(in_features))
+
         # Feedforward
         self.input_to_hidden = nn.Linear(
             self.n_input_units, self.n_hidden_units, bias=False
         )
+        nn.init.uniform_(self.input_to_hidden.weight, a=-self.ks[1], b=self.ks[1])
+
         self.hidden_to_output = nn.Linear(
             self.n_hidden_units, self.n_output_units, bias=False
         )
+        nn.init.uniform_(self.hidden_to_output.weight, a=-self.ks[2], b=self.ks[2])
 
         # Lateral
-        if wm_flags[0]:
+        if wm_flags[0]:  # ii
             self.input_to_input = nn.Linear(
                 self.n_input_units, self.n_input_units, bias=False
             )
-        if wm_flags[1]:
+            nn.init.uniform_(self.input_to_input.weight, a=-self.ks[0], b=self.ks[0])
+
+        if wm_flags[1]:  # hh
             self.hidden_to_hidden = nn.Linear(
                 self.n_hidden_units, self.n_hidden_units, bias=False
             )
-        if wm_flags[2]:
+            nn.init.uniform_(self.hidden_to_hidden.weight, a=-self.ks[1], b=self.ks[1])
+
+        if wm_flags[2]:  # oo
             self.output_to_output = nn.Linear(
                 self.n_output_units, self.n_output_units, bias=False
             )
+            nn.init.uniform_(self.output_to_output.weight, a=-self.ks[2], b=self.ks[2])
 
         # Skip
-        if wm_flags[3]:
+        if wm_flags[3]:  # io
             self.input_to_output = nn.Linear(
                 self.n_input_units, self.n_output_units, bias=False
             )
-        if wm_flags[4]:
+            nn.init.uniform_(self.input_to_output.weight, a=-self.ks[2], b=self.ks[2])
+
+        if wm_flags[4]:  # oi
             self.output_to_input = nn.Linear(
                 self.n_output_units, self.n_input_units, bias=False
             )
+            nn.init.uniform_(self.output_to_input.weight, a=-self.ks[0], b=self.ks[0])
 
         # Feedback
-        if wm_flags[5]:
+        if wm_flags[5]:  # hi
             self.hidden_to_input = nn.Linear(
                 self.n_hidden_units, self.n_input_units, bias=False
             )
-        if wm_flags[6]:
+            nn.init.uniform_(self.hidden_to_input.weight, a=-self.ks[0], b=self.ks[0])
+
+        if wm_flags[6]:  # oh
             self.output_to_hidden = nn.Linear(
                 self.n_output_units, self.n_hidden_units, bias=False
             )
+            nn.init.uniform_(self.output_to_hidden.weight, a=-self.ks[1], b=self.ks[1])
 
     def policy(self):
         """
