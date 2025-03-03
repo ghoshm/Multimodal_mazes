@@ -257,7 +257,7 @@ class AgentDQN(nn.Module, Agent):
 
                 # Predicted Q-value
                 q_values, prev_input, hidden, prev_output = self.forward(
-                    prev_input.detach(), hidden.detach(), prev_output.detach()
+                    prev_input, hidden, prev_output
                 )
                 predicted = q_values[action]
 
