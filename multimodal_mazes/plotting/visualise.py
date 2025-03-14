@@ -380,6 +380,39 @@ def plot_dqn_architecture(wm_flag, ax=None, color=None):
             path_collection.set_edgecolor(color)
 
 
+def plot_dqn_weight_matrix(n_input_units, n_hidden_units, n_output_units, wm_flag):
+    """ """
+    cmap = colors.ListedColormap(
+        ["white", "xkcd:slate grey", "xkcd:teal blue", "xkcd:topaz", "xkcd:orange"]
+    )
+
+    ni = n_input_units
+    nh = n_input_units + n_hidden_units
+    no = n_input_units + n_hidden_units + n_output_units
+
+    w = np.zeros((no, no))
+
+    w[:ni, ni:nh] = 1  # ih
+    w[ni:nh, nh:no] = 1  # ho
+
+    if wm_flag[0]:  # ii
+        w[:ni, :ni] = 2
+    if wm_flag[1]:  # hh
+        w[ni:nh, ni:nh] = 2
+    if wm_flag[2]:  ## oo
+        w[nh:, nh:] = 2
+    if wm_flag[3]:  # io
+        w[:ni, nh:] = 3
+    if wm_flag[4]:  # oi
+        w[nh:, :ni] = 3
+    if wm_flag[5]:  # hi
+        w[ni:nh, :ni] = 4
+    if wm_flag[6]:  # oh
+        w[nh:, ni:nh] = 4
+
+    plt.imshow(w, cmap=cmap, vmin=0, vmax=4)
+
+
 def plot_dqn_rankings(y, y_label, interest, i_cols, y_lim=None, sig_test=False):
     """
     Plot each architecture's distribution for a given metric.
@@ -448,6 +481,7 @@ def plot_dqn_rankings(y, y_label, interest, i_cols, y_lim=None, sig_test=False):
         # Multiple comparions adjustment
         ps = np.array(ps)
         ps = stats.false_discovery_control(ps)
+        print(str(np.sum(ps < 0.05)) + " significantly different")
 
         for a, i in enumerate(idxs):
             if ps[a] < 0.05:

@@ -2,6 +2,7 @@
 
 import numpy as np
 import multimodal_mazes
+import torch
 from scipy import signal
 
 
@@ -62,6 +63,16 @@ def predator_trial(
             genome=genome,
             config=config,
         )
+
+    elif agnt.type == "AgentDQN":
+        agnt.prev_input = torch.zeros(agnt.n_input_units)
+        agnt.hidden = torch.zeros(agnt.n_hidden_units)
+        agnt.prev_output = torch.zeros(agnt.n_output_units)
+
+        agnt.location = np.array([pk_hw + (size // 2), pk_hw + (size // 2)])
+        agnt.outputs = torch.zeros(agnt.n_output_units)
+        agnt.sensor_noise_scale = sensor_noise_scale
+
     else:
         agnt.location = np.array([pk_hw + (size // 2), pk_hw + (size // 2)])
         agnt.sensor_noise_scale = sensor_noise_scale
@@ -72,7 +83,7 @@ def predator_trial(
             agnt.flight_length = 0
             agnt.collision = 0
 
-    # Create environment with track (1. and walls 0.)
+    # Create environment with track (1.) and walls (0.)
     env = np.zeros((size, size, len(agnt.channels) + 1))
     env[:, :, -1] = 1.0
     env = np.pad(env, pad_width=((pk_hw, pk_hw), (pk_hw, pk_hw), (0, 0)))
