@@ -6,7 +6,6 @@ import itertools
 import multimodal_mazes
 import copy
 from torch.autograd.functional import jacobian
-from sklearn.feature_selection import mutual_info_regression
 
 
 def test_dqn_agent(maze_test, agnt, exp_config, noises):
@@ -48,7 +47,7 @@ def test_dqn_agent(maze_test, agnt, exp_config, noises):
         input_sensitivity.append((np.copy(xs), np.copy(ys)))
 
         # Memory
-        mis = multimodal_mazes.estimate_dqn_memory(
+        mis = multimodal_mazes.calculate_dqn_memory(
             all_states=all_states,
             agnt=copy.deepcopy(agnt),
             n_steps=exp_config["n_steps"],
@@ -110,56 +109,74 @@ def calculate_dqn_input_sensitivity(all_states, agnt):
     return xs, ys
 
 
-def estimate_dqn_memory(all_states, agnt, n_steps):
+def calculate_dqn_memory(all_states, agnt, n_steps):
     """
-    Estimates a networks memory.
-        Defined as the norm of the estimated mutual information
-        between it's inputs and outputs at different time lags.
+    Calculate a dqn network's memory.
+        Essentially, the (normalised) partial derivative of the input
+        w.r.t output, at different temporal lags.
     Arguments:
         all_states: a list containing a list per trial; each of which
             contains a tuple per time point of the agent's states.
         agnt: an instance of a DQN agent.
         n_steps: number of simulation steps.
     Returns:
-        mis: a np vector with the agent's memory per temporal lag.
+        tmp: a np vector with the agent's memory per temporal lag.
     """
 
-    # Reorganise states by time
-    x, y, t = [], [], []
-    for trial_states in all_states:
-        for time in range(n_steps):
+    # Define helper function
+    def forward(*states):
+        """
+        Arguments:
+            states: a tuple storing tensors of:
+                inputs, prev_inputs, hidden, prev_outputs, outputs
+                from multiple time points.
+                I.e. inputs occur every 5th tensor.
+        Returns:
+            agnt.outputs: output activations at t.
+        """
 
-            try:
-                x.append(trial_states[time][0])  # input at time
-                y.append(trial_states[time][-1])  # output at time
-            except:
-                x.append(np.zeros(agnt.n_input_units) * np.nan)
-                y.append(np.zeros(agnt.n_output_units) * np.nan)
+        for t, input in enumerate(states[::5]):
 
-            t.append(time)
+            agnt.channel_inputs = input
 
-    x, y, t = np.array(x), np.array(y), np.array(t)
-
-    # Estimate MI at different lags
-    mis = []
-    for lag in range(n_steps):
-        x_tmp = x[t <= (n_steps - 1 - lag)]
-        y_tmp = y[t >= lag]
-
-        x_tmp = x_tmp[np.isnan(y_tmp).all(1) == 0]
-        y_tmp = y_tmp[np.isnan(y_tmp).all(1) == 0]
-
-        if x_tmp.any():
-            mi = torch.tensor(
-                np.array(
-                    [
-                        mutual_info_regression(x_tmp, y_tmp[:, i], n_neighbors=3)
-                        for i in range(y_tmp.shape[1])
-                    ]
+            if t == 0:
+                agnt.outputs, prev_input, hidden, prev_output = agnt.forward(
+                    states[1], states[2], states[3], tensor_input=True
                 )
-            )
-            mis.append(torch.norm(mi, p="fro"))
-        else:
-            mis.append(np.nan)
+            else:
+                agnt.outputs, prev_input, hidden, prev_output = agnt.forward(
+                    prev_input, hidden, prev_output, tensor_input=True
+                )
 
-    return np.array(mis)
+        return agnt.outputs
+
+    # Calculate
+    memory = [[] for _ in range(n_steps)]
+
+    for a in range(len(all_states)):  # for each trial
+
+        trial_states = tuple(
+            itertools.chain.from_iterable(all_states[a])
+        )  # a tuple of tensor states
+
+        for b, _ in enumerate(trial_states[::5]):  # for each time point
+
+            jm = jacobian(
+                forward, trial_states[: (5 * (b + 1))]
+            )  # a tuple of Jacobians (one per state)
+
+            for c, j in enumerate(
+                jm[::5][::-1]
+            ):  # for each (sensor) input state (from t backwards)
+                memory[c].append(
+                    torch.norm(j, p="fro") / torch.norm(jm[::5][-1], p="fro")
+                )  # append the norm divided by the norm at time t
+
+    # Store
+    tmp = []
+    for i in range(n_steps):
+        memory[i] = np.array(memory[i])
+        memory[i][np.isinf(memory[i])] = np.nan
+        tmp.append(np.nanmean(memory[i]))
+
+    return np.array(tmp)
