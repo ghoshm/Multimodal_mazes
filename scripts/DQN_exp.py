@@ -26,23 +26,7 @@ def run_exp(job_index, exp_config):
     wm_flag = wm_flags[job_index]
 
     # Generate mazes
-    maze = multimodal_mazes.TrackMaze(
-        size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
-    )
-    maze.generate(
-        number=exp_config["n_mazes"],
-        noise_scale=exp_config["maze_noise_scale"],
-        gaps=exp_config["maze_gaps"],
-    )
-
-    maze_test = multimodal_mazes.TrackMaze(
-        size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
-    )
-    maze_test.generate(
-        number=1000,
-        noise_scale=exp_config["maze_noise_scale"],
-        gaps=exp_config["maze_gaps"],
-    )
+    maze, maze_test = multimodal_mazes.maze_generator_wrapper(exp_config=exp_config)
 
     # Agent
     if job_index != 1:

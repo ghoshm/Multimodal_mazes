@@ -24,6 +24,7 @@ def load_exp_config(path):
     sensor_noise_scale = float(exp_config["DEFAULT"]["sensor_noise_scale"])
     drop_connect_p = float(exp_config["DEFAULT"]["drop_connect_p"])
     save_path = exp_config["DEFAULT"]["save_path"]
+    maze_type = exp_config["DEFAULT"]["maze_type"]
 
     exp_config_dict = {
         "channels": channels,
@@ -36,6 +37,7 @@ def load_exp_config(path):
         "sensor_noise_scale": sensor_noise_scale,
         "drop_connect_p": drop_connect_p,
         "save_path": save_path,
+        "maze_type": maze_type,
     }
 
     return exp_config_dict

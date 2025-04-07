@@ -2,6 +2,7 @@
 
 import numpy as np
 from multimodal_mazes.agents.agent import Agent
+import multimodal_mazes
 
 
 class Maze:
@@ -142,3 +143,46 @@ class Maze:
             channel_inputs, axis=2
         )  # (sensors x channels x batch)
         self.ci_actions = np.array(actions)  # vector
+
+
+def maze_generator_wrapper(exp_config):
+    """
+    Generate a set of mazes from an exp_config file.
+    Arguments:
+        exp_config: loaded hyperparameters.
+    Returns:
+        mazes: a set of mazes.
+        maze_test: a set of 1000 mazes.
+    """
+
+    if exp_config["maze_type"] == "Track":
+        maze = multimodal_mazes.TrackMaze(
+            size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
+        )
+        maze.generate(
+            number=exp_config["n_mazes"],
+            noise_scale=exp_config["maze_noise_scale"],
+            gaps=exp_config["maze_gaps"],
+        )
+
+        maze_test = multimodal_mazes.TrackMaze(
+            size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
+        )
+        maze_test.generate(
+            number=1000,
+            noise_scale=exp_config["maze_noise_scale"],
+            gaps=exp_config["maze_gaps"],
+        )
+
+    elif exp_config["maze_type"] == "H":
+        maze = multimodal_mazes.HMaze(
+            size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
+        )
+        maze.generate(number=exp_config["n_mazes"])
+
+        maze_test = multimodal_mazes.HMaze(
+            size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
+        )
+        maze_test.generate(number=1000)
+
+    return maze, maze_test

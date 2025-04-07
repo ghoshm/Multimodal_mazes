@@ -65,7 +65,7 @@ class HMaze(Maze):
             maze[1:-1, [1, -2], -1] = 1.0
 
             # Set up gradients
-            gradient = np.linspace(start=0.1, stop=1.0, num=(self.size - 3))
+            gradient = np.linspace(start=0.1, stop=0.5, num=(self.size - 3))
             gradient_h = gradient[: (len(gradient) // 2)]
             gradient_v = gradient[(len(gradient) // 2) :]
 
