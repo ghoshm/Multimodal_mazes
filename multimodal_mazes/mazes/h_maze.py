@@ -53,6 +53,10 @@ class HMaze(Maze):
         goal_channels = np.repeat([[0, 1], [1, 0]], repeats=number // 2, axis=0)
         np.random.shuffle(goal_channels)
 
+        # Set goal rotations
+        goal_rotations = np.repeat([0, 1], repeats=number // 2)
+        np.random.shuffle(goal_rotations)
+
         mazes, d_maps, fastest_solutions = [], [], []
         for n in range(number):
             maze = np.zeros(
@@ -120,6 +124,15 @@ class HMaze(Maze):
                 ] = gradient_v[
                     ::-1
                 ]  # up
+
+            # Rotate 1/2 to be vertical
+            if goal_rotations[n] == 1:
+                if (goal_locations[n] == [1, 1]).all() or (
+                    goal_locations[n] == [self.size - 2, self.size - 2]
+                ).all():
+                    maze = np.transpose(maze, axes=(1, 0, 2))
+                else:
+                    maze = np.transpose(np.flip(maze, (0, 1)), axes=(1, 0, 2))
 
             # Calculate distance map
             d_map = Maze.distance_map(mz=maze, exit=goal_locations[n])
