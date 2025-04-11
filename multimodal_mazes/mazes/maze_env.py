@@ -178,11 +178,11 @@ def maze_generator_wrapper(exp_config):
         maze = multimodal_mazes.HMaze(
             size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
         )
-        maze.generate(number=exp_config["n_mazes"])
+        maze.generate(number=exp_config["n_mazes"], gaps=exp_config["maze_gaps"])
 
         maze_test = multimodal_mazes.HMaze(
             size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
         )
-        maze_test.generate(number=1000)
+        maze_test.generate(number=1000, gaps=exp_config["maze_gaps"])
 
     return maze, maze_test

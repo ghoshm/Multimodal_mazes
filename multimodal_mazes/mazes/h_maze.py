@@ -17,11 +17,12 @@ class HMaze(Maze):
         self.maze_type = "HMaze"
         self.goal_channels = []
 
-    def generate(self, number):
+    def generate(self, number, gaps):
         """
         Generates H mazes.
         Arguments:
             number: of mazes to generate
+            gaps: length of the gap from 0 (no gap) onwards.
         Generates:
             mazes: see parent class.
             start_locations: see parent class.
@@ -124,6 +125,21 @@ class HMaze(Maze):
                 ] = gradient_v[
                     ::-1
                 ]  # up
+
+            # Gaps
+            if gaps > 0:
+                if goal_locations[n, 0] == 1:  # up
+                    maze[
+                        goal_locations[n, 0] + 1 : goal_locations[n, 0] + (gaps + 1),
+                        goal_locations[n, 1],
+                        :-1,
+                    ] = 0.0
+                else:  # down
+                    maze[
+                        goal_locations[n, 0] - gaps : goal_locations[n, 0],
+                        goal_locations[n, 1],
+                        :-1,
+                    ] = 0.0
 
             # Rotate 1/2 to be vertical
             if goal_rotations[n] == 1:
