@@ -176,9 +176,9 @@ def eval_fitness(
 
     # Return fitness
     if record_states == False:
-        return np.array(fitness).mean()
+        return np.nanmean(fitness)
     elif record_states == True:
-        return np.array(fitness).mean(), all_states
+        return np.nanmean(fitness), all_states
 
 
 def id_top_agents(fitness_cutoff, exp_data, maze, exp_config, genomes, config):

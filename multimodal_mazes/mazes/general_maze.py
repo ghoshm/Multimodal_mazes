@@ -73,10 +73,10 @@ class GeneralMaze(Maze):
             # Fill sensory cues
             maze = shortest_path_fill(mz=maze, channels=[0], d_map=d_map)
             # maze = random_fill(mz=maze, channels=[1])
-            # maze = shortest_path_fill(mz=maze, channels=[1], d_map=d_map)
-            maze = distance_fill(
-                mz=maze, channels=[1], exit=goal_loc, distance="chebyshev"
-            )
+            maze = shortest_path_fill(mz=maze, channels=[1], d_map=d_map)
+            # maze = distance_fill(
+            #     mz=maze, channels=[1], exit=goal_loc, distance="chebyshev"
+            # )
 
             # Divide multimodal cue values
             maze[:, :, :-1] /= maze.shape[2] - 1
