@@ -2,6 +2,46 @@
 import numpy as np
 import multimodal_mazes
 from tqdm import tqdm
+import copy
+
+
+def robustness_to_cue_sparsity(maze, agnt, channels, sensor_noise_scale, n_steps):
+    """
+    Tests agents robustness to removing cues from a maze.
+    Arguments:
+        maze: a list of mazes, each maze is
+            np array of size x size x channels + 1.
+            Where [:,:,-1] stores the maze structure.
+        agnt: an instance of an agent.
+        channels: list of active (1) and inative (0) channels e.g. [0,1].
+        sensor_noise_scale: the scale of the noise applied to every sensor.
+        n_steps: number of simulation steps.
+    Returns:
+        results: a list with the agent's fitness per sparsity.
+    """
+    results = []
+    for sparsity in np.linspace(start=0.0, stop=1.0, num=21):
+
+        # Create sparse mazes
+        maze_sparse = multimodal_mazes.sparse_cues(
+            maze=copy.deepcopy(maze), sparsity=sparsity
+        )
+
+        # Test fitness
+        fitness = multimodal_mazes.eval_fitness(
+            genome=None,
+            config=None,
+            channels=channels,
+            sensor_noise_scale=sensor_noise_scale,
+            drop_connect_p=0.0,
+            maze=maze_sparse,
+            n_steps=n_steps,
+            agnt=copy.deepcopy(agnt),
+        )
+
+        results.append(fitness)
+
+    return results
 
 
 def robustness_to_maze_noise(

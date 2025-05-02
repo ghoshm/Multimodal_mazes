@@ -2,6 +2,7 @@
 import numpy as np
 from multimodal_mazes.mazes.maze_env import Maze
 from sklearn.metrics import DistanceMetric
+import copy
 
 
 class GeneralMaze(Maze):
@@ -20,7 +21,7 @@ class GeneralMaze(Maze):
         Generates general mazes.
         Arguments:
             number: of mazes to generate.
-            noise_scale: scale of gaussian noise.
+            noise_scale: scale of gaussian noise added to cues.
         Generates:
             mazes: see parent class.
             stat_locations: parent class.
@@ -268,23 +269,25 @@ def path_fidelity_fill(mz, d_map, path, path_fidelity):
     return mz
 
 
-def sparse_fill(mz, sparsity):
+def sparse_cues(maze, sparsity):
     """
-    Remove cues from a maze.
-        Treating each channel independently.
+    Remove cues from a set of mazes.
     Arguments:
-        mz: a np array of size x size x channels + 1.
+        maze: a list of mazes, each maze is
+            np array of size x size x channels + 1.
             Where [:,:,-1] stores the maze structure.
         sparsity: the fraction of cues to remove [0,1].
             0 - return a dense maze (with all cues).
             1 - remove all cues.
     Returns:
-        mz: with some fraction of sensory cues removed.
+        maze_sparse: maze with some fraction of
+            sensory cues removed from each maze.
     """
+    maze_sparse = copy.deepcopy(maze)
 
-    track = np.vstack(np.where(mz[:, :, -1])).T  # positions [r,c]
-    for ch in range(mz.shape[2] - 1):
+    for a, mz_s in enumerate(maze_sparse.mazes):
+        track = np.vstack(np.where(mz_s[:, :, -1])).T  # positions [r,c]
         idx = np.random.rand(len(track)) <= sparsity
-        mz[track[idx, 0], track[idx, 1], ch] = 0.0
+        maze_sparse.mazes[a][track[idx, 0], track[idx, 1], :-1] = 0.0
 
-    return mz
+    return maze_sparse

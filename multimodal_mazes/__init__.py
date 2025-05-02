@@ -11,7 +11,10 @@ from multimodal_mazes.mazes.maze_env import (
 )
 from multimodal_mazes.mazes.track_maze import TrackMaze
 from multimodal_mazes.mazes.h_maze import HMaze
-from multimodal_mazes.mazes.general_maze import GeneralMaze
+from multimodal_mazes.mazes.general_maze import (
+    GeneralMaze,
+    sparse_cues,
+)
 from multimodal_mazes.misc import (
     load_exp_config,
     load_search_config,
@@ -43,6 +46,7 @@ from multimodal_mazes.analysis.architecture_analysis import (
     define_graph,
 )
 from multimodal_mazes.analysis.robustness import (
+    robustness_to_cue_sparsity,
     robustness_to_maze_noise,
     robustness_to_sensor_noise,
     robustness_to_drop_connect,

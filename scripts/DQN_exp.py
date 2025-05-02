@@ -7,6 +7,7 @@ import re
 import shutil
 import pickle
 import multimodal_mazes
+import copy
 
 
 def run_exp(job_index, exp_config):
@@ -48,20 +49,39 @@ def run_exp(job_index, exp_config):
     agnt.n_parameters = n_parameters
 
     # Train
-    agnt.generate_policy(maze=maze, n_steps=exp_config["n_steps"], maze_test=maze_test)
+    agnt.generate_policy(
+        maze=multimodal_mazes.sparse_cues(
+            copy.deepcopy(maze), sparsity=exp_config["cue_sparsity"]
+        ),
+        n_steps=exp_config["n_steps"],
+        maze_test=multimodal_mazes.sparse_cues(
+            copy.deepcopy(maze_test), sparsity=exp_config["cue_sparsity"]
+        ),
+    )
 
     # Test
     results, input_sensitivity, memory = multimodal_mazes.test_dqn_agent(
-        maze_test=maze_test,
+        maze_test=multimodal_mazes.sparse_cues(
+            copy.deepcopy(maze_test), sparsity=exp_config["cue_sparsity"]
+        ),
         agnt=agnt,
         exp_config=exp_config,
         noises=noises,
+    )
+
+    results_sparse = multimodal_mazes.robustness_to_cue_sparsity(
+        maze=copy.deepcopy(maze_test),
+        agnt=agnt,
+        channels=exp_config["channels"],
+        sensor_noise_scale=exp_config["sensor_noise_scale"],
+        n_steps=exp_config["n_steps"],
     )
 
     # Store
     agnt.results = results
     agnt.input_sensitivity = input_sensitivity
     agnt.memory = memory
+    agnt.results_sparse = results_sparse
 
     return agnt
 
