@@ -26,6 +26,7 @@ def load_exp_config(path):
     save_path = exp_config["DEFAULT"]["save_path"]
     maze_type = exp_config["DEFAULT"]["maze_type"]
     cue_sparsity = float(exp_config["DEFAULT"]["cue_sparsity"])
+    wall_sparsity = float(exp_config["DEFAULT"]["wall_sparsity"])
 
     exp_config_dict = {
         "channels": channels,
@@ -40,6 +41,7 @@ def load_exp_config(path):
         "save_path": save_path,
         "maze_type": maze_type,
         "cue_sparsity": cue_sparsity,
+        "wall_sparsity": wall_sparsity,
     }
 
     return exp_config_dict

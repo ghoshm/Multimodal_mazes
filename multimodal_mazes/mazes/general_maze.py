@@ -16,12 +16,14 @@ class GeneralMaze(Maze):
         assert (self.size % 2) == 1, "Please use an uneven maze size"
         self.maze_type = "GeneralMaze"
 
-    def generate(self, number, noise_scale):
+    def generate(self, number, noise_scale=0.0, cue_sparsity=0.0, wall_sparsity=0.0):
         """
         Generates general mazes.
         Arguments:
             number: of mazes to generate.
             noise_scale: scale of gaussian noise added to cues.
+            cue_sparsity: fraction of cues to remove from none (0) to all (1).
+            wall_sparsity: fraction of walls to remove from none (0) to all (1).
         Generates:
             mazes: see parent class.
             stat_locations: parent class.
@@ -54,6 +56,10 @@ class GeneralMaze(Maze):
             # Generate maze structure
             maze[:, :, -1] = aldous_broder(self.size)
 
+            # Wall sparsity
+            if wall_sparsity > 0.0:
+                maze = sparse_walls(mz=maze, sparsity=wall_sparsity)
+
             # Choose start and goal locations
             pos_s_g = corners[np.where(maze[corners[:, 0], corners[:, 1], -1])[0], :]
             locs = np.random.choice(len(pos_s_g), size=2, replace=False)
@@ -73,11 +79,7 @@ class GeneralMaze(Maze):
 
             # Fill sensory cues
             maze = shortest_path_fill(mz=maze, channels=[0], d_map=d_map)
-            # maze = random_fill(mz=maze, channels=[1])
             maze = shortest_path_fill(mz=maze, channels=[1], d_map=d_map)
-            # maze = distance_fill(
-            #     mz=maze, channels=[1], exit=goal_loc, distance="chebyshev"
-            # )
 
             # Divide multimodal cue values
             maze[:, :, :-1] /= maze.shape[2] - 1
@@ -88,6 +90,10 @@ class GeneralMaze(Maze):
                 loc=0.0, scale=noise_scale, size=(len(r), (maze.shape[2] - 1))
             )
             maze = np.clip(maze, a_min=0.0, a_max=1.0)
+
+            # Cue sparsity
+            if cue_sparsity > 0.0:
+                maze = sparse_cues(mz=maze, sparsity=cue_sparsity)
 
             # Append to lists
             mazes.append(maze)
@@ -269,25 +275,53 @@ def path_fidelity_fill(mz, d_map, path, path_fidelity):
     return mz
 
 
-def sparse_cues(maze, sparsity):
+def sparse_cues(mz, sparsity):
     """
-    Remove cues from a set of mazes.
+    Remove cues from a maze.
     Arguments:
-        maze: a list of mazes, each maze is
-            np array of size x size x channels + 1.
+        mz: a np array of size x size x channels + 1.
             Where [:,:,-1] stores the maze structure.
         sparsity: the fraction of cues to remove [0,1].
             0 - return a dense maze (with all cues).
             1 - remove all cues.
     Returns:
-        maze_sparse: maze with some fraction of
-            sensory cues removed from each maze.
+        mz_sparse: maze with some fraction of
+            sensory cues removed.
     """
-    maze_sparse = copy.deepcopy(maze)
+    mz_sparse = copy.deepcopy(mz)
 
-    for a, mz_s in enumerate(maze_sparse.mazes):
-        track = np.vstack(np.where(mz_s[:, :, -1])).T  # positions [r,c]
-        idx = np.random.rand(len(track)) <= sparsity
-        maze_sparse.mazes[a][track[idx, 0], track[idx, 1], :-1] = 0.0
+    track = np.vstack(np.where(mz_sparse[:, :, -1])).T  # positions [r,c]
+    idx = np.random.rand(len(track)) <= sparsity
+    mz_sparse[track[idx, 0], track[idx, 1], :-1] = 0.0
 
-    return maze_sparse
+    return mz_sparse
+
+
+def sparse_walls(mz, sparsity):
+    """
+    Remove walls from a maze.
+    Arguments:
+        mz: a np array of size x size x channels + 1.
+            Where [:,:,-1] stores the maze structure.
+        sparsity: the fraction of walls to remove [0,1].
+            0 - return a dense maze (with all walls).
+            1 - remove all walls.
+    Returns:
+        mz_sparse: maze with some fraction of
+            walls removed.
+    """
+
+    mz_sparse = copy.deepcopy(mz)
+
+    wall = np.vstack(np.where(1 - mz_sparse[:, :, -1])).T  # positions [r,c]
+
+    # Exclude edges
+    for a in range(2):
+        for b in [0, len(mz_sparse) - 1]:
+            wall = wall[(wall[:, a] != b)]
+
+    idx = np.random.rand(len(wall)) <= sparsity
+
+    mz_sparse[wall[idx, 0], wall[idx, 1], -1] = 1.0
+
+    return mz_sparse

@@ -190,12 +190,20 @@ def maze_generator_wrapper(exp_config):
             size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
         )
         maze.generate(
-            number=exp_config["n_mazes"], noise_scale=exp_config["maze_noise_scale"]
+            number=exp_config["n_mazes"],
+            noise_scale=exp_config["maze_noise_scale"],
+            cue_sparsity=exp_config["cue_sparsity"],
+            wall_sparsity=exp_config["wall_sparsity"],
         )
 
         maze_test = multimodal_mazes.GeneralMaze(
             size=exp_config["maze_size"], n_channels=len(exp_config["channels"])
         )
-        maze_test.generate(number=1000, noise_scale=exp_config["maze_noise_scale"])
+        maze_test.generate(
+            number=1000,
+            noise_scale=exp_config["maze_noise_scale"],
+            cue_sparsity=exp_config["cue_sparsity"],
+            wall_sparsity=exp_config["wall_sparsity"],
+        )
 
     return maze, maze_test
