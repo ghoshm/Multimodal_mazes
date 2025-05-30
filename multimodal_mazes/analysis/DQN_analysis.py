@@ -180,3 +180,69 @@ def calculate_dqn_memory(all_states, agnt, n_steps):
         tmp.append(np.nanmean(memory[i]))
 
     return np.array(tmp)
+
+
+def calculate_dqn_w_norms(agnt):
+    """
+    Calculate the norm of each weight matrix in a DQN model.
+    Arguments:
+        agnt: an instance of a DQN agent.
+    Returns:
+        w_norms: a numpy vector - with a norm per weight matrix.
+    """
+
+    tmp_f, tmp_o = [], []
+    w_norms = np.zeros(9)
+
+    for a, p in enumerate(agnt.parameters()):
+
+        if a <= 1:
+            tmp_f.append(torch.norm(p.data, p="fro"))
+        else:
+            tmp_o.append(torch.norm(p.data, p="fro"))
+
+    w_norms[:2] = np.array(tmp_f)
+    w_norms[2:][agnt.wm_flags == 1] = np.array(tmp_o)
+
+    return w_norms
+
+
+def compute_counterfactual_effects(X, y):
+    """
+    Compute the counterfactual effect of flipping each
+    binary feature in X on the outcome y.
+
+    Parameters:
+        X: binary matrix (samples, features).
+        y: continuous vector (samples,).
+
+    Returns:
+        ce (list of lists): counterfactual effects for each feature.
+        f0 (list of lists): indicies without each feature.
+        f1 (list of lists): indicies with each feature.
+    """
+
+    n_features = X.shape[1]
+    counterfactual_effects = [[] for _ in range(n_features)]
+    f0 = [[] for _ in range(n_features)]
+    f1 = [[] for _ in range(n_features)]
+
+    for i in range(n_features):
+
+        # Indices where feature i is 0
+        indices_0 = np.where(X[:, i] == 0)[0]
+
+        for idx_0 in indices_0:
+            # Define counterfactual sample
+            counterfactual_sample = X[idx_0].copy()
+            counterfactual_sample[i] = 1
+
+            # Find counterfactual sample
+            match_idx = np.where((X == counterfactual_sample).all(axis=1))[0][0]
+
+            # Calculate difference
+            counterfactual_effects[i].append(y[match_idx] - y[idx_0])
+            f0[i].append(idx_0)
+            f1[i].append(match_idx)
+
+    return counterfactual_effects, f0, f1

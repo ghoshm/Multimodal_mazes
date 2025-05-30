@@ -32,6 +32,8 @@ from multimodal_mazes.plotting.visualise import (
     plot_dqn_weight_matrix,
     plot_dqn_rankings,
     plot_dqn_examples,
+    plot_cf_effects,
+    plot_cf_max,
 )
 from multimodal_mazes.analysis.architecture_analysis import (
     prune_architecture,
@@ -58,4 +60,6 @@ from multimodal_mazes.analysis.DQN_analysis import (
     calculate_dqn_input_sensitivity,
     calculate_dqn_memory,
     test_dqn_agent,
+    calculate_dqn_w_norms,
+    compute_counterfactual_effects,
 )

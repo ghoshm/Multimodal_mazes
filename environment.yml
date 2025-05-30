@@ -8,11 +8,14 @@ dependencies:
   - python-graphviz
   - graphviz
   - plotly
-  - netgraph
   - scikit-learn
   - networkx
   - tqdm
   - seaborn
   - pytorch
   - shap
+  - pip
+  - pip:
+    - netgraph
+    - neat-python
 prefix: C:\Users\ghosh\anaconda3\envs\Multimodal_mazes
