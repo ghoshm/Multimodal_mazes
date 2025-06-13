@@ -540,112 +540,213 @@ def plot_dqn_examples(y, y_label, interest, i_cols, y_lim=None, sig_test=False):
                 )
 
 
-def plot_cf_effects(ce, cols, x_labels, y_label):
+def plot_cf_effects(ce, f0, f1, y, cols, x_labels, y_label):
     """
-    Plot the counterfactual effect for each DQN weight matrix (feature).
-        And test if these are significantly different from zero.
+    Plots all counterfactual effects (per feature).
+        Highlighting significant effects.
     Arguments:
-        ce: a samples x features numpy array.
+        ce: counterfactual effects for each feature (ce pairs, features).
+        f0: indicies without each feature (ce pairs, features).
+        f1: indicies with each feature (ce pairs, features).
+        y: metric (architectures, repeats)
         cols: a list of colors (one per feature).
         x_labels: a list of labels (one per feature).
         y_label: a label for the y-axis (str).
     """
+
     from scipy import stats
+    import warnings
+
+    warnings.filterwarnings("ignore", module="seaborn")
 
     # Significance testing
-    ps = []
-    for i in range(ce.shape[1]):
-        _, p = stats.wilcoxon(ce[:, i])
-        ps.append(p)
+    ps = np.zeros_like(ce) * np.nan
+    for a in range(ce.shape[0]):
+        for b in range(ce.shape[1]):
+
+            _, p = stats.mannwhitneyu(
+                x=y[f0[a, b]], y=y[f1[a, b]], method="asymptotic", nan_policy="omit"
+            )
+
+            ps[a, b] = p
+
     ps = stats.false_discovery_control(ps)
+    ps = (ps < 0.01) * 1  # binary (ce pairs, features)
 
     # Plotting
-    fig, ax = plt.subplots(
-        nrows=1, ncols=1, figsize=(5 * 2, 5), sharex=True, sharey=True
-    )
-    plt.hlines(y=0.0, xmin=-0.5, xmax=ce.shape[1] - 0.5, color="xkcd:grey", zorder=0)
-    l, m, u = np.nanquantile(ce, [0.25, 0.5, 0.75], axis=0)
-    l_overall, m_overall, u_overall = np.nanquantile(ce, [0.05, 0.5, 0.95])
+    fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(5 * 2, 5))
 
+    palettes = []
+    for a, c in enumerate(cols):
+        if np.sum(ps[:, a]) == 0:
+            palettes.append(["xkcd:light grey"])
+        elif np.sum(ps[:, a]) == ps.shape[0]:
+            palettes.append([c])
+        else:
+            palettes.append(["xkcd:light grey", c])
+
+    plt.hlines(y=0.0, xmin=-0.5, xmax=ce.shape[1] - 0.5, color="xkcd:grey", zorder=0)
+
+    l, m, u = np.nanquantile(ce, [0.25, 0.5, 0.75], axis=0)
     idx_f = np.argsort(m)
-    sns.swarmplot(ce[:, idx_f], color="k", alpha=0.2, zorder=1)
 
     for a, i in enumerate(idx_f):
-        plt.scatter(a, m[i], c=cols[i])
-        plt.plot([a, a], [l[i], u[i]], c=cols[i])
+        sns.swarmplot(
+            x=np.ones(ce.shape[0]) * a,
+            y=ce[:, i],
+            hue=ps[:, i],
+            palette=palettes[i],
+            zorder=1,
+        )
 
-        if ps[i] <= 0.01:
-            plt.scatter(x=a, y=u_overall * 1.5, c="k", marker="$*$")
-
+    plt.xlabel("Weight matrix")
     plt.xticks(range(len(x_labels)), [x_labels[i] for i in idx_f])
     plt.ylabel("Ce of $W$ on " + y_label)
-
+    l_overall, m_overall, u_overall = np.nanquantile(ce, [0.05, 0.5, 0.95])
     plt.ylim(l_overall * 2, u_overall * 2)
+    plt.legend([], [], frameon=False)
 
 
-def plot_cf_max(ce, f0, f1, y, wm_flags, y_label, exclude_architectures=[]):
+def plot_cf_max(ce, f0, f1, y, wm_flags, y_label, p_metric, exclude_architectures=[]):
     """
-    Plot the maximum counterfactual effect for a given metric (y).
-        Specifically, the two architectures and their distribtuions across
-        repeats.
+    Plot the maximum counterfactual effect for a given metric (y):
+        Two architectures and their distribtuions across repeats.
     Arguments:
-         ce: a samples x features numpy array.
-         f0: a list of lists (indicies without each feature).
-         f1: a list of lists (indicies with each feature)
-         y: metric (architectures x repeats).
-         wm_flags: a binary matrix (architectures x features x repeats)
-         y_label: a label for the y-axis (str).
-         exclude_architectures: provide a list of ints to exclude specific architectures.
+        ce: counterfactual effects for each feature (ce pairs, features).
+        f0: indicies without each feature (ce pairs, features).
+        f1: indicies with each feature (ce pairs, features).
+        y: metric (architectures x repeats)
+        wm_flags: a binary matrix (architectures x features x repeats)
+        y_label: a label for the y-axis (str).
+        p_metric: the metric to be used for plotting (shape depends on y label).
+        exclude_architectures: provide a list of ints to exclude specific architectures.
+    Note:
+        Currently makes quite strong assumptions for plotting.
     """
     from scipy import stats
 
-    ce_v = ce.reshape(-1)
-    f0 = np.array(f0).T.reshape(-1)
-    f1 = np.array(f1).T.reshape(-1)
+    # Find most extreme counterfactual pair
+    ce = ce.reshape(-1)
+    f0 = f0.reshape(-1)
+    f1 = f1.reshape(-1)
 
     if len(exclude_architectures) > 0:
         for i in exclude_architectures:
-            ce_v[f0 == i] = np.nan
-            ce_v[f1 == i] = np.nan
+            ce[f0 == i] = np.nan
+            ce[f1 == i] = np.nan
 
-    idx_m = np.nanargmax(abs(ce_v))
+    idx_m = np.nanargmax(abs(ce))
+    interest = [f0[idx_m], f1[idx_m]]
+    i_cols = ["xkcd:grey", "xkcd:dark seafoam green"]
 
-    fig, ax = plt.subplots(nrows=2, ncols=2, sharex="row", sharey="row")
+    # Plotting
+    fig, ax = plt.subplot_mosaic([["ul", "ur"], ["l", "l"]], figsize=(5, 5))
 
-    # Without feature
-    plt.sca(ax[0, 0])
+    # Architectures
+    plt.sca(ax["ul"])
     multimodal_mazes.plot_dqn_architecture(
-        np.nanmax(wm_flags, axis=2)[f0[idx_m]], ax=ax[0, 0], color="xkcd:grey"
+        np.nanmax(wm_flags, axis=2)[interest[0]], ax=ax["ul"], color=i_cols[0]
     )
 
-    plt.sca(ax[1, 0])
-    sns.swarmplot(y=y[f0[idx_m]], c="xkcd:grey")
-    ax[1, 0].set_xticks([])
-    ax[1, 0].spines["bottom"].set_visible(False)
-    plt.ylabel(y_label)
-
-    # With feature
-    plt.sca(ax[0, 1])
+    plt.sca(ax["ur"])
+    ax["ur"].sharex(ax["ul"])
+    ax["ur"].sharey(ax["ul"])
     multimodal_mazes.plot_dqn_architecture(
-        np.nanmax(wm_flags, axis=2)[f1[idx_m]],
-        ax=ax[0, 1],
-        color="xkcd:dark seafoam green",
+        np.nanmax(wm_flags, axis=2)[interest[1]],
+        ax=ax["ur"],
+        color=i_cols[1],
     )
 
-    plt.sca(ax[1, 1])
-    sns.swarmplot(y=y[f1[idx_m]], color="xkcd:dark seafoam green")
-    ax[1, 1].set_xticks([])
-    ax[1, 1].spines["bottom"].set_visible(False)
+    # Metric
+    plt.sca(ax["l"])
 
-    # Statistical comparison
-    _, p = stats.mannwhitneyu(
-        x=y[f0[idx_m]], y=y[f1[idx_m]], method="asymptotic", nan_policy="omit"
-    )
+    if y_label == "Fitness":
+        sns.swarmplot(x=0, y=y[interest[0]], c=i_cols[0])
+        sns.swarmplot(x=1, y=y[interest[1]], c=i_cols[1])
+        plt.xticks([])
+        plt.xlim([-0.5, 1.5])
+        plt.ylabel(y_label)
 
-    if p < 0.01:
-        plt.scatter(
-            x=0,
-            y=max(y[f1[idx_m]]) * 1.05,
-            c="k",
-            marker="$*$",
+        # Statistical comparison
+        _, p = stats.mannwhitneyu(
+            x=y[interest[0]], y=y[interest[1]], method="asymptotic", nan_policy="omit"
         )
+
+        if p < 0.01:
+            plt.scatter(
+                x=1,
+                y=max(y[interest[1]]) * 1.05,
+                c="k",
+                marker="$*$",
+            )
+
+    elif y_label == "SE":
+        for a, i in enumerate(interest):
+            x = range(p_metric.shape[1])
+            l, m, u = np.nanquantile(p_metric[i], [0.25, 0.5, 0.75], axis=1)
+            plt.plot(x, m, color=i_cols[a])
+            plt.fill_between(x, l, u, color=i_cols[a], alpha=0.25, edgecolor=None)
+
+        plt.xticks([0, 49, 99], labels=["0", "50", "100"])
+        plt.xlabel("Percentage of training")
+        plt.ylabel("Fitness")
+
+    elif y_label == "Robustness":
+
+        # Interest
+        for a, i in enumerate(interest):
+            x = np.linspace(start=0.0, stop=0.5, num=21)
+            l, m, u = np.nanquantile(p_metric[:, i], [0.25, 0.5, 0.75], axis=1)
+            plt.plot(x, m, color=i_cols[a])
+            plt.fill_between(x, l, u, color=i_cols[a], alpha=0.25, edgecolor=None)
+
+        plt.plot(
+            [0.05, 0.05], [0, 1], ":", color="k", alpha=0.5, label="Training noise"
+        )
+
+        # Fitness vs noise
+        plt.ylabel("Fitness")
+        plt.xlabel("Sensor noise")
+        plt.legend()
+
+    elif y_label == "IS":
+        for a, arch in enumerate(interest):
+            y_means_arch = []
+            for b in range(len(p_metric[arch])):
+
+                xs = p_metric[arch][b][2][0]
+                ys = p_metric[arch][b][2][1]
+
+                bins = np.linspace(start=-1, stop=1, num=22)
+                bin_idxs = np.digitize(xs, bins) - 1
+                bin_centers = (bins[:-1] + bins[1:]) / 2
+
+                y_means = [np.mean(ys[bin_idxs == i]) for i in range(len(bins) - 1)]
+                y_means_arch.append(y_means)
+
+            l, m, u = np.nanquantile(np.array(y_means_arch), [0.25, 0.5, 0.75], axis=0)
+            plt.fill_between(
+                bin_centers, l, u, color=i_cols[a], alpha=0.25, edgecolor=None
+            )
+            plt.plot(bin_centers, m, color=i_cols[a])
+
+        plt.xticks(ticks=[-1, 0, 1], labels=("-1.0", "0.0", "1.0"))
+        plt.xlabel("Input state (L:R)")
+        plt.ylabel("Input sensitivity")
+        plt.legend()
+
+    elif y_label == "Memory":
+        for a, i in enumerate(interest):
+            x = range(p_metric[i, 2].shape[0])
+            l, m, u = np.nanquantile(p_metric[i, 2], [0.25, 0.5, 0.75], axis=1)
+            plt.plot(x, m[::-1], color=i_cols[a])
+            plt.fill_between(
+                x, l[::-1], u[::-1], color=i_cols[a], alpha=0.25, edgecolor=None
+            )
+
+        plt.hlines(
+            y=1.0, xmin=0, xmax=p_metric.shape[2] - 1, color="k", linestyles="--"
+        )
+        plt.ylabel("Memory")
+        plt.xlabel("Time")
+        plt.xticks([0, len(m) - 1], [-len(m) + 1, 0])

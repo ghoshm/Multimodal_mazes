@@ -217,9 +217,9 @@ def compute_counterfactual_effects(X, y):
         y: continuous vector (samples,).
 
     Returns:
-        ce (list of lists): counterfactual effects for each feature.
-        f0 (list of lists): indicies without each feature.
-        f1 (list of lists): indicies with each feature.
+        ce: counterfactual effects for each feature (ce pairs, features).
+        f0: indicies without each feature (ce pairs, features).
+        f1: indicies with each feature (ce pairs, features).
     """
 
     n_features = X.shape[1]
@@ -245,4 +245,4 @@ def compute_counterfactual_effects(X, y):
             f0[i].append(idx_0)
             f1[i].append(match_idx)
 
-    return counterfactual_effects, f0, f1
+    return np.array(counterfactual_effects).T, np.array(f0).T, np.array(f1).T
