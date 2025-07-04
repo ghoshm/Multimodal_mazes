@@ -66,8 +66,8 @@ def calculate_dqn_input_sensitivity(all_states, agnt):
             contains a tuple per time point of the agent's states.
         agnt: an instance of a DQN agent.
     Returns:
-        xs: a numpy array with the left minus right signal at each time step.
-        ys: a numpy array with the norm of the (input-output) Jacobian.
+        xs: a numpy array with the directional coherance at each time step.
+        ys: a numpy array with the norm of the (input-output) Jacobian at each time step.
     """
 
     # Reformat data
@@ -93,9 +93,23 @@ def calculate_dqn_input_sensitivity(all_states, agnt):
     xs, ys = [], []
     for state in all_states:
         jm = jacobian(forward, state)
-        x = (torch.sum(state[0][[0, 1]]) - torch.sum(state[0][[2, 3]])) / torch.sum(
-            state[0][:4]
+
+        net_vector = torch.zeros(2)
+        total_input = 0.0
+
+        for a, i in enumerate(np.arange(len(state[0]))[::2]):
+            magnitude = state[0][i] + state[0][i + 1]
+            direction = torch.tensor([agnt.sensors[0][a], agnt.sensors[1][a]])
+
+            net_vector += magnitude * direction
+            total_input += magnitude
+
+        x = (
+            torch.norm(net_vector) / total_input
+            if total_input > 0
+            else torch.tensor(0.0)
         )
+
         y = torch.norm(jm[0], p="fro")
 
         xs.append(x)
