@@ -6,6 +6,7 @@ from matplotlib.markers import MarkerStyle
 from netgraph import Graph
 import seaborn as sns
 import multimodal_mazes
+from matplotlib import cm
 
 plt.style.use("../multimodal_mazes/plotting/style_sheet.mplstyle")
 
@@ -61,7 +62,7 @@ def plot_fitness_over_generations(x, plot_species=True):
     plt.ylabel("Fitness")
 
 
-def plot_path(path, mz, mz_goal_loc, n_steps):
+def plot_path(path, mz, mz_goal_loc, n_steps, style="gradients"):
     """
     Plots an agents path through a single maze.
     Arguments:
@@ -71,6 +72,7 @@ def plot_path(path, mz, mz_goal_loc, n_steps):
             Where [:,:,-1] stores the maze structure.
         mz_goal_loc: the location of the goal [r,c].
         n_steps: the number of simulation steps.
+        style: plot cues as either "gradients" or "circles".
     Plots:
         The maze structure as path (white) and walls (grey).
         Green circles mark the start (unfilled) and end (filled) locations.
@@ -80,23 +82,49 @@ def plot_path(path, mz, mz_goal_loc, n_steps):
     path = np.array(path, dtype="double")
 
     # Draw maze
-    plt.imshow(1 - mz[:, :, -1], cmap="binary", alpha=0.25)
-    fill_style = ["left", "right"]
-    for ch in [0, 1]:
-        r, c = np.where(mz[:, :, ch])
-        v = mz[:, :, ch][mz[:, :, ch] > 0]
+    if style == "circles":
+        plt.imshow(1 - mz[:, :, -1], cmap="binary", alpha=0.25)
+        fill_style = ["left", "right"]
+        for ch in [0, 1]:
+            r, c = np.where(mz[:, :, ch])
+            v = mz[:, :, ch][mz[:, :, ch] > 0]
 
-        try:
-            plt.scatter(
-                x=c,
-                y=r,
-                s=200,
-                alpha=v,
-                color="black",
-                marker=MarkerStyle("o", fillstyle=fill_style[ch]),
-            )
-        except:  # for when there are no sensory cues
-            pass
+            try:
+                plt.scatter(
+                    x=c,
+                    y=r,
+                    s=200,
+                    alpha=v,
+                    color="black",
+                    marker=MarkerStyle("o", fillstyle=fill_style[ch]),
+                )
+            except:  # for when there are no sensory cues
+                pass
+
+    elif style == "gradients":
+        cmap_wall = cm.binary
+        cmap_wall.set_under("k", alpha=0)
+
+        cmap_ch0 = colors.LinearSegmentedColormap.from_list(
+            "", ["white", "xkcd:ultramarine"]
+        )
+
+        cmap_ch1 = colors.LinearSegmentedColormap.from_list(
+            "", ["white", "xkcd:magenta"]
+        )
+
+        plt.imshow(
+            1 - mz[:, :, -1],
+            clim=[0.1, 1.0],
+            cmap=cmap_wall,
+            alpha=0.25,
+            zorder=1,
+        )
+
+        plt.imshow(
+            (cmap_ch0(mz[:, :, 0]) + cmap_ch1(mz[:, :, 1])) / 2,
+            zorder=0,
+        )
 
     if len(path) > 0:
 
@@ -417,7 +445,7 @@ def plot_dqn_weight_matrix(n_input_units, n_hidden_units, n_output_units, wm_fla
     if wm_flag[6]:  # oh
         w[nh:, ni:nh] = 4
 
-    plt.imshow(w, cmap=cmap, vmin=0, vmax=4)
+    plt.imshow(w, cmap=cmap, vmin=0, vmax=4, alpha=0.50)
 
 
 def plot_dqn_rankings(y, y_label, interest, i_cols, y_lim=None, sig_test=False):
