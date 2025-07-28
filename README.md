@@ -2,7 +2,7 @@
 
 A library for creating multisensory environments and testing various agents. 
 
-![Multimodal mazes](https://github.com/ghoshm/Multimodal_mazes/readme_images/MM_logo.png)
+![Multimodal mazes](https://github.com/ghoshm/Multimodal_mazes/blob/main/readme_images/MM_logo.png)
 
 ## Setup 
 
@@ -48,7 +48,7 @@ Each maze itself (*maze.mazes[n]*) is a Numpy array of shape size x size x (n_ch
 * *maze.mazes[n][:,:,-1]* stores the maze's structure: walls (0.0) and paths (1.0).
 * *maze.mazes[n][:,:,:-1]* stores each channel's sensory cues. For example, gradients leading towards the goal. 
 
-![Maze structure](https://github.com/ghoshm/Multimodal_mazes/readme_images/Mz_structure.png)
+![Maze structure](https://github.com/ghoshm/Multimodal_mazes/blob/main/readme_images/Mz_structure.png)
 
 ### Agents 
 
@@ -58,7 +58,7 @@ Agents navigate environments. To do so, they:
 2. Implement a **policy** mapping their sensations to actions.
 3. Act. By default, actions include moving in a cardinal direction, or pausing. Note that when an agent tries to move into a wall, it will simply remain in place. 
 
-![Agent sensation-action loop](https://github.com/ghoshm/Multimodal_mazes/readme_images/Sense_policy_act.png)
+![Agent sensation-action loop](https://github.com/ghoshm/Multimodal_mazes/blob/main/readme_images/Sense_policy_act.png)
 
 All agents share the same sensations and actions (inherited from the *Agent* class) but use different policies. These include: 
 * Rule-based policies. For example, sum your sensory inputs across channels and move in the direction with the greatest total (linear fusion).   
@@ -80,7 +80,7 @@ time, path = multimodal_mazes.maze_trial(mz=maze.mazes[n], mz_start_loc=maze.sta
 multimodal_mazes.plot_path(path, mz=maze.mazes[n], mz_goal_loc=maze.goal_locations[n], n_steps=100, style="gradients")
 ```
 
-![Example agent path](https://github.com/ghoshm/Multimodal_mazes/readme_images/Mz_agnt_path.png)
+![Example agent path](https://github.com/ghoshm/Multimodal_mazes/blob/main/readme_images/Mz_agnt_path.png)
 
 To test an agent on a batch of mazes: 
 ```python
