@@ -2,6 +2,9 @@
 
 A library for creating multisensory environments and testing various agents. 
 
+For more details please see: 
+* Our preprint - [Ghosh & Goodman, 2025](https://doi.org/10.1101/2025.07.28.667142).
+
 ![Multimodal mazes](https://github.com/ghoshm/Multimodal_mazes/blob/main/readme_images/MM_logo.png)
 
 ## Setup 
@@ -118,7 +121,9 @@ fitness = multimodal_mazes.eval_fitness(genome=None, config=None, channels=[1,1]
 print(fitness)
 ```
 
-Note that changing the (binary) values in the *wm_flags* variable will allow you to train different architectures.
+To train different architectures use the *wm_flags* variable (in the *AgentDQN* class). This controls the presence (1) or absence (0) of each additional weight matrix. Setting all values to zero (as above) will create a purely feedforward model - with input to hidden and hidden to output weights. Setting all values to one will create a fully recurrent model - as every unit will connect to every other unit bidirectionally. Settings between these two extremes will create partially recurrent neural networks (pRNNs) - with some combination of weight matrices.
+
+![Partially recurrent neural networks](https://github.com/ghoshm/Multimodal_mazes/blob/main/readme_images/pRNN_gradient.png)
 
 ### From the terminal
 Open a terminal, change into the *scripts* folder and then run either *maze_exp.py* for NEAT or *DQN_exp.py* for DQN:
